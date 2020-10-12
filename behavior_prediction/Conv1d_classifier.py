@@ -1,17 +1,18 @@
 import numpy as np
-import keras
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.callbacks import ModelCheckpoint
-from keras.optimizers import Adam
-from keras.layers.convolutional import Conv1D
-from keras.layers.convolutional import MaxPooling1D
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Conv1D
+from tensorflow.keras.layers import MaxPooling1D
 
 prefix_list = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 WINDOW_SIZE = 8
 
 def load_data(label_type, data_type):
+    train_test_path = 'dataset/train_test/'
     if label_type == 'raw':
         label_dict = {'Hold': 0, 'Rest': 1, 'Preparation': 2, 'Retraction': 3, 'Stroke': 4}
     else:
@@ -19,8 +20,8 @@ def load_data(label_type, data_type):
     x = []
     y = []
     for prefix in prefix_list:
-        data = open('./dataset/original' + str(prefix) + '_' + str(data_type) + '.csv', 'r')
-        label = open('./dataset/original' + str(prefix) + '_' + str(data_type) + '_label.txt', 'r')
+        data = open(train_test_path + str(prefix) + '_' + str(label_type) + '_' + str(data_type) + '.csv', 'r')
+        label = open(train_test_path + str(prefix) + '_' + str(label_type) + '_' + str(data_type) + '_label.txt', 'r')
         for d in data:
             temp = []
             for a in d.rstrip().split(','):
@@ -30,8 +31,8 @@ def load_data(label_type, data_type):
             temp = [0, 0, 0, 0, 0]
             temp[label_dict[l.rstrip()]] = 1
             y.append(temp)
-    x = np.array(x).reshape(len(y), WINDOW_SIZE, 18)
-    y = np.array(y).reshape(len(y), 5)
+    x = np.array(x).reshape((len(y), WINDOW_SIZE, 18))
+    y = np.array(y).reshape((len(y), 5))
     return x, y
 
 def get_all_data():
@@ -54,7 +55,7 @@ def build_model(filter_no):
     return model
 
 
-filepath = "./best.hdf5"
+filepath = "./model/best.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_acc',
                             verbose=1, save_best_only=True, mode='max')
 batch_size = 16
@@ -110,8 +111,8 @@ def load_best(filter_no):
 
 def main():
     #parameter_test()
-    #run_model(filter_no=64)
-    load_best(filter_no=64)
+    run_model(filter_no=32)
+    #load_best(filter_no=64)
 
 
 if __name__ == "__main__":

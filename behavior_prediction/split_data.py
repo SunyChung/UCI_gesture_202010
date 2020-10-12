@@ -69,26 +69,38 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
 
         if data_type == 'raw':
             train_data = window_data_array[:num_train_data, :, :-2]
-            # print(np.shape(train_data)) : (x, 8, 18)
+            print(np.shape(train_data)) #: (x, 8, 18)
             train_label = window_data_array[:num_train_data, :, -1]
-            # print(np.shape(train_label)) : (x, 8)
+            train_label = train_label.reshape((-1, WINDOW_SIZE, 1))
+            print(np.shape(train_label)) #: (x, 8, 1)
+
             test_data = window_data_array[num_train_data: , :, :-2]
+            print(np.shape(test_data)) # : (x, 8, 18)
             test_label = window_data_array[num_train_data:, :, -1]
+            test_label = test_label.reshape((-1, WINDOW_SIZE, 1))
+            print(np.shape(test_label)) # : (x, 8, 1)
         else:
             train_vel_data = window_data_array[:num_train_data, :, :12]
-            # print(np.shape(train_vel_data)) : (x, 8, 12)
+            print(np.shape(train_vel_data)) #: (x, 8, 12)
             train_vel_label = window_data_array[:num_train_data, :, -1]
+            train_vel_label = train_vel_label.reshape((-1, WINDOW_SIZE, 1))
+            print(np.shape(train_vel_label))
             train_acc_data = window_data_array[:num_train_data, :, 12:24]
             train_acc_label = window_data_array[:num_train_data, :, -1]
+            train_acc_label = train_acc_label.reshape((-1, WINDOW_SIZE, 1))
             train_sca_data = window_data_array[:num_train_data, :, 24:32]
             train_sca_label = window_data_array[:num_train_data, :, -1]
+            train_sca_label = train_sca_label.reshape((-1, WINDOW_SIZE, 1))
 
             test_vel_data = window_data_array[num_train_data:, :, :12]
             test_vel_label = window_data_array[num_train_data:, :, -1]
+            test_vel_label = test_vel_label.reshape((-1, WINDOW_SIZE, 1))
             test_acc_data = window_data_array[num_train_data:, :, 12:24]
             test_acc_label = window_data_array[num_train_data:, :, -1]
+            test_acc_label = test_acc_label.reshape((-1, WINDOW_SIZE, 1))
             test_sca_data = window_data_array[num_train_data:, :, 24:32]
             test_sca_label = window_data_array[num_train_data:, :, -1]
+            test_sca_label = test_sca_label.reshape((-1, WINDOW_SIZE, 1))
 
         if data_type == 'raw':
             write_data(train_data, train_label, data_name, data_type, 'train', None)
@@ -104,17 +116,19 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
 
         if data_type == 'raw':
             num_test_data = 0
-            for value in test_label:
-                test_label_file.write('%d, %d\n' %(num_total_test_data + 1, given_labels[value[-1]]))
-                num_test_data += 1
-                num_total_test_data += 1
+            for line in test_label:
+                for value in line:
+                    test_label_file.write('%d, %d\n' %(num_total_test_data + 1, given_labels[value[-1]]))
+                    num_test_data += 1
+                    num_total_test_data += 1
             print('%s %s: %d test data' %(data_name, data_type, num_test_data))
         else:
             num_test_data = 0
-            for value in test_vel_label:
-                test_label_file.write('%d, %d\n' %(num_total_test_data + 1, given_labels[value[-1]]))
-                num_test_data += 1
-                num_total_test_data += 1
+            for line in test_vel_label:
+                for value in line:
+                    test_label_file.write('%d, %d\n' %(num_total_test_data + 1, given_labels[value[-1]]))
+                    num_test_data += 1
+                    num_total_test_data += 1
             print('%s %s: %d test data' %(data_name, data_type, num_test_data))
 
     test_label_file.close()
@@ -142,9 +156,10 @@ def write_data(data, label, data_name, data_type, index, sub_type):
     else:
         label_path = os.path.join(train_test_path, '%s_%s_%s_%s_label.txt' %(data_name, data_type, sub_type, index))
     with open(label_path, 'w') as f:
-        for value in label:
-            f.write(value[-1])
-            f.write('\n')
+        for line in label:
+            for value in line:
+                f.write(','.join([str(x) for x in value]))
+                f.write('\n')
 
 
 raw_test_label_path = os.path.join('dataset', 'raw_test_list.csv')
