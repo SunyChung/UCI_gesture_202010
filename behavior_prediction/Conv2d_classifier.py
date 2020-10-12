@@ -14,13 +14,13 @@ from tensorflow.keras.layers import MaxPooling1D
 PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 WINDOW_SIZE = 8
 
-def load_1d_data(data_name, data_type, coord_length, sub_type=None):
+def load_1d_data(data_name, data_type, coord_len=None, sub_type=None):
     train_test_path = 'dataset/train_test/'
 
     if data_name == 'raw':
-        data_dict = {'Hold' : 0, 'Rest' : 1, 'Preparation' : 2, 'Retraction' : 3, 'Stroke' : 4}
+        data_dict = {'Hold': 0, 'Rest': 1, 'Preparation': 2, 'Retraction': 3, 'Stroke': 4}
     else:
-        data_dict = {'H' : 0, 'D' : 1, 'P' : 2, 'R' : 3, 'S' : 4}
+        data_dict = {'H': 0, 'D': 1, 'P': 2, 'R': 3, 'S': 4}
 
     x = []
     y = []
@@ -36,26 +36,21 @@ def load_1d_data(data_name, data_type, coord_length, sub_type=None):
         for line in data:
             line = line.rstrip().split(',')
             line_length = len(line)
-            #print(line_length)
-            #print(line)
             temp = []
             for value in line:
                 temp = temp + [float(value)]
-            temp = np.array(temp).reshape((-1, coord_length))
+            # print(np.shape(temp))
             x.append(temp)
         for l in label:
-            temp = [data_dict[l.rstrip()]] * WINDOW_SIZE
-            temp = np.array(temp)
-            y.append(temp.reshape(WINDOW_SIZE, -1))
-            #print(np.shape(y))
-    x = np.array(x).reshape((len(y), -1, (line_length//coord_length), coord_length))
-    y = np.array(y)
-    #print(y)
+            y.append(l)
+    x = np.array(x).reshape((-1, line_length, WINDOW_SIZE))
+    y = np.array(y).reshape((-1, 1, WINDOW_SIZE))
     print(np.shape(x))
     print(np.shape(y))
-    print(line_length//coord_length)
-    return x, y, (line_length//coord_length)
+    return x, y
 
+#raw_train_x, raw_train_y = load_1d_data('raw', 'train')
+#raw_test_x, raw_test_y = load_1d_data('raw', 'test')
 
 def transpose_1d_data(data_name, data_type, coord_length, sub_type=None):
     train_test_path = 'dataset/train_test/'
@@ -96,20 +91,22 @@ def transpose_1d_data(data_name, data_type, coord_length, sub_type=None):
             row_3.append(line[2 + (coord_length * i)])
 
     x_tranpose = np.stack((row_1, row_2, row_3))
+    x_tranpose = np.array(x_tranpose).reshape((-1, WINDOW_SIZE, coord_length, (line_length//coord_length)))
     print(np.shape(x_tranpose))
 
-    print(np.shape(label))
     for l in label:
         y.append(data_dict[l.rstrip()])
-    print(y)
+    print(np.shape(y))
+    # check the array shape!!
+    y = np.array(y).reshape((-1, WINDOW_SIZE, 1))
     print(np.shape(y))
     return x_tranpose, y
 
 raw_train_x, raw_train_y = transpose_1d_data('raw', 'train', coord_length=3)
 
 '''
-raw_train_x, raw_train_y, row_length = load_1d_data('raw', 'train', coord_length=3)
-raw_test_x, raw_test_y, row_length = load_1d_data('raw', 'test', coord_length=3)
+raw_train_x, raw_train_y = load_1d_data('raw', 'train')
+raw_test_x, raw_test_y = load_1d_data('raw', 'test')
 
 va3_vel_train_x, va3_vel_train_y, row_length = load_1d_data('va3', 'train', coord_length=3, sub_type='vel')
 va3_acc_train_x, va3_acc_train_y, row_length = load_1d_data('va3', 'train', coord_length=3, sub_type='acc')

@@ -41,7 +41,7 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
         data_array = np.array(data)
         labels = data_array[:, -1]
         # print(labels)
-        # print('label length = ', len(labels))
+        print('label length = ', len(labels))
 
         # remove no-label data
         for i in range(len(labels)):
