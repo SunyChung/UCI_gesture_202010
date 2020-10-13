@@ -4,90 +4,87 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Flatten
 from tensorflow.keras.callbacks import ModelCheckpoint
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.layers import Conv1D
 from tensorflow.keras.layers import MaxPooling1D
 
-prefix_list = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
+PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 WINDOW_SIZE = 8
 
-def load_data(label_type, data_type):
+
+def load_1d_data(data_name, data_type, sub_type=None):
     train_test_path = 'dataset/train_test/'
-    if label_type == 'raw':
-        label_dict = {'Hold': 0, 'Rest': 1, 'Preparation': 2, 'Retraction': 3, 'Stroke': 4}
+
+    if data_name == 'raw':
+        data_dict = {'Hold': 0, 'Rest': 1, 'Preparation': 2, 'Retraction': 3, 'Stroke': 4}
     else:
-        label_dict = {'H': 0, 'D': 1, 'P': 2, 'R': 3,'S': 4}
+        data_dict = {'H': 0, 'D': 1, 'P': 2, 'R': 3, 'S': 4}
+
     x = []
     y = []
-    for prefix in prefix_list:
-        data = open(train_test_path + str(prefix) + '_' + str(label_type) + '_' + str(data_type) + '.csv', 'r')
-        label = open(train_test_path + str(prefix) + '_' + str(label_type) + '_' + str(data_type) + '_label.txt', 'r')
-        for d in data:
+    for prefix in PREFIX_LIST:
+        if sub_type is None:
+            data = open(train_test_path + str(prefix) + '_' + str(data_name)
+                        + '_' + str(data_type) + '.csv', 'r')
+            label = open(train_test_path + str(prefix) + '_' + str(data_name)
+                         + '_' + str(data_type) + '_label.txt', 'r')
+        else:
+            data = open(train_test_path + str(prefix) + '_' + str(data_name)
+                        + '_' + str(sub_type) + '_' + str(data_type) + '.csv', 'r')
+            label = open(train_test_path + str(prefix) + '_' + str(data_name)
+                         + '_' + str(sub_type) + '_' + str(data_type) + '_label.txt', 'r')
+
+        for line in data:
+            line = line.rstrip().split(',')
             temp = []
-            for a in d.rstrip().split(','):
-                temp = temp + [float(a)]
+            for value in line:
+                temp = temp + [float(value)]
+            # print(np.shape(temp))
             x.append(temp)
+
         for l in label:
-            temp = [0, 0, 0, 0, 0]
-            temp[label_dict[l.rstrip()]] = 1
-            y.append(temp)
-    x = np.array(x).reshape((len(y), WINDOW_SIZE, 18))
-    y = np.array(y).reshape((len(y), 5))
+            #print(l.rstrip().replace(',', ''))  # R,e,s,t -> Rest
+            y.append(data_dict[l.rstrip().replace(',', '')])
+
+    x = np.array(x).reshape((-1, 1, 18))
+    y = np.array(y).reshape((-1, 1, 1))
+    print(np.shape(x))
+    print(np.shape(y))
     return x, y
 
+
+#x, y = load_1d_data('raw', 'train', sub_type=None)
+#print(x)
+#print(y)
+
+
 def get_all_data():
-    train_x, train_y = load_data('raw', 'train')
-    test_x, test_y = load_data('raw', 'test')
+    train_x, train_y = load_1d_data('raw', 'train')
+    test_x, test_y = load_1d_data('raw', 'test')
     return train_x, train_y, test_x, test_y
+
 
 def build_model(filter_no):
     model = Sequential()
-    model.add(Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(WINDOW_SIZE, 18)))
-    model.add(Conv1D(filters=32, kernel_size=3, activation='relu'))
+    model.add(Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(18, )))
+    # input shape [16, 1, 1, 18]
+    # conv1D [1, 3, 18, 32]
+    # model.add(Conv1D(filters=32, kernel_size=3, activation='relu'))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
-    model.add(Dense(5, activation='softmax'))
+    model.add(Dense(1, activation='softmax'))
     model.summary()
-    model.compile(loss='categorical_crossentropy',
-              optimizer='adam', #Adam(lr=0.0001, epsilon=1e-4),
-              metrics=['accuracy'])
+    model.compile(loss='sparse_categorical_crossentropy',
+                  optimizer='adam', metrics=['accuracy'])
     return model
 
 
 filepath = "./model/best.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_acc',
-                            verbose=1, save_best_only=True, mode='max')
+                             verbose=1, save_best_only=True, mode='max')
 batch_size = 16
 num_epochs = 200
 k = 10
-
-def parameter_test():
-    for filter_no in [16, 32, 48, 64]:
-        train_x, train_y, test_x, test_y = get_all_data()
-        num_val_samples = len(train_x) // k
-        accuracy_list = []
-        for i in range(k):
-            print('processing fold #: ', i)
-            val_data = train_x[i * num_val_samples: (i + 1) * num_val_samples]
-            val_targets = train_y[i * num_val_samples: (i + 1) * num_val_samples]
-            partial_train_data = np.concatenate(
-                                                [train_x[:i * num_val_samples],
-                                                train_x[(i + 1) * num_val_samples:]],
-                                                axis=0)
-            partial_train_targets = np.concatenate(
-                                                    [train_y[:i * num_val_samples],
-                                                    train_y[(i + 1) * num_val_samples:]],
-                                                    axis=0)
-            model = build_model(filter_no)
-            model.fit(partial_train_data, partial_train_targets,
-                      epochs=num_epochs, batch_size=16, verbose=0,
-                      callbacks=[checkpoint])
-            _, accuracy = model.evaluate(val_data, val_targets, batch_size=16)
-            accuracy_list.append(accuracy)
-        print('\naccuracy validation: filter number = ', filter_no)
-        print(accuracy_list)
-        print('\nvalidation score average = ', np.mean(accuracy_list))
 
 
 def run_model(filter_no):
@@ -103,14 +100,13 @@ def run_model(filter_no):
 
 def load_best(filter_no):
     model = build_model(filter_no)
-    test_x, test_y = load_data('raw', 'test')
+    test_x, test_y = load_1d_data('raw', 'test')
     model.load_weights('./classifier_weights.hdf5')
     _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
     print('evaluation: accuracy(%)=  ', round(accuracy, 3)*100)
 
 
 def main():
-    #parameter_test()
     run_model(filter_no=32)
     #load_best(filter_no=64)
 
