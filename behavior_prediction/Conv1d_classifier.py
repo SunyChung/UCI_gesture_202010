@@ -49,7 +49,7 @@ def load_1d_data(data_name, data_type, sub_type=None):
 
     print(len(y))
     x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
-    y = np.array(y).reshape((-1, WINDOW_SIZE))
+    y = np.array(y).reshape((-1, 1))
     print(np.shape(x))
     print(np.shape(y))
     return x, y
@@ -63,8 +63,8 @@ def get_all_data():
 
 def build_model():
     model = Sequential()
-    model.add(Conv1D(filters=32, kernel_size=3, activation='relu', input_shape=(WINDOW_SIZE, 18)))
-    model.add(Conv1D(filters=32, kernel_size=3, activation='relu'))
+    model.add(Conv1D(filters=64, kernel_size=5, activation='relu', input_shape=(WINDOW_SIZE, 18)))
+    model.add(Conv1D(filters=64, kernel_size=3, activation='relu'))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
@@ -104,7 +104,7 @@ def load_best():
 
 def main():
     run_model()
-    #load_best()
+    load_best()
 
 
 if __name__ == "__main__":
