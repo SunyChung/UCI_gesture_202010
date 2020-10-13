@@ -42,11 +42,11 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
         labels = data_array[:, -1]
         # print(labels)
         print('label length = ', len(labels))
-
         # remove no-label data
         for i in range(len(labels)):
             if labels[i] not in given_labels:
                 data_array = np.delete(data_array, i, 0)
+
         # make sliding window array data
         window_data_array = []
         for i in range(0, len(data_array) - window_size, 1):
@@ -56,7 +56,6 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
         # : (x, 8, 20) for raw, (x, 8, 33) for processed
         # (x, 8, 20) meaning, there are x number of (8, 20) array!!
         # (x, 8, 33) meaning, there are x number of (8, 33) array!
-
         # print('sliding window data len = ', len(window_data_array))
 
         # data split
@@ -156,7 +155,7 @@ def write_data(data, label, data_name, data_type, index, sub_type):
     with open(label_path, 'w') as f:
         for line in label:
             for value in line:
-                f.write(','.join([str(x) for x in value]))
+                f.write(value[:])
                 f.write('\n')
 
 
