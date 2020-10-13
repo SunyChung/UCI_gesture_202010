@@ -34,9 +34,8 @@ def load_1d_data(data_name, data_type, sub_type=None):
                          + '_' + str(sub_type) + '_' + str(data_type) + '_label.txt', 'r')
 
         for line in data:
-            line = line.rstrip().split(',')
             temp = []
-            for value in line:
+            for value in line.rstrip().split(','):
                 temp = temp + [float(value)]
             # print(np.shape(temp))
             x.append(temp)

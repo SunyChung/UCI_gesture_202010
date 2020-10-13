@@ -52,11 +52,6 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
         for i in range(0, len(data_array) - window_size, 1):
             window_data_array.append(data_array[i: i + window_size, :])
         window_data_array = np.array(window_data_array)
-        # print(np.shape(window_data_array))
-        # : (x, 8, 20) for raw, (x, 8, 33) for processed
-        # (x, 8, 20) meaning, there are x number of (8, 20) array!!
-        # (x, 8, 33) meaning, there are x number of (8, 33) array!
-        # print('sliding window data len = ', len(window_data_array))
 
         # data split
         # should NOT shuffle the data!
@@ -153,11 +148,16 @@ def write_data(data, label, data_name, data_type, index, sub_type):
     else:
         label_path = os.path.join(train_test_path, '%s_%s_%s_%s_label.txt' % (data_name, data_type, sub_type, index))
     with open(label_path, 'w') as f:
+        # to make prediction for the last WINDOW_SIZE!
         for line in label:
+            f.write(line[-1])
+            f.write('\n')
+            '''
+            # below gives the same label with the data!
             for value in line:
                 f.write(value[:])
                 f.write('\n')
-
+            '''
 
 raw_test_label_path = os.path.join('dataset', 'raw_test_list.csv')
 pro_test_label_path = os.path.join('dataset', 'va3_test_list.csv')
