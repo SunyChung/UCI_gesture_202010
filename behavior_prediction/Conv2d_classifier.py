@@ -39,27 +39,26 @@ def load_1d_data(data_name, data_type):
     # for Conv1D input!
     # x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
     # for Conv2D input!!
-    x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+    if data_name == 'raw':
+        x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+    else:
+        x = np.array(x).reshape((-1, WINDOW_SIZE, 32, 1))
     y = np.array(y).reshape((-1, 1))
     print(np.shape(x))
     print(np.shape(y))
     return x, y
 
-'''
-raw_train_x, raw_train_y = load_1d_data('raw', 'train')
-raw_test_x, raw_test_y = load_1d_data('raw', 'test')
 
-va3_train_x, va3_train_y = load_1d_data('va3', 'train')
-va3_test_x, va3_test_y = load_1d_data('va3', 'test')
-'''
-
-
-def build_model():
+def build_model(data_name):
+    if data_name == 'raw':
+        input_shape = (WINDOW_SIZE, 18, 1)
+    else:
+        input_shape = (WINDOW_SIZE, 32, 1)
     model = Sequential()
     # Conv2D : image size (width x height) X num of channel!
     # thus, the last dimension is 1 for this case!
     # SHOULD reshape the input data to (1, 8, 18, 1) for Conv2D!
-    model.add(Conv2D(32, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=(WINDOW_SIZE, 18, 1)))
+    model.add(Conv2D(32, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=input_shape))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
@@ -69,9 +68,13 @@ def build_model():
     return model
 
 
-def build_model_2():
+def build_model_2(data_name):
+    if data_name == 'raw':
+        input_shape = (WINDOW_SIZE, 18, 1)
+    else:
+        input_shape = (WINDOW_SIZE, 32, 1)
     model = Sequential()
-    model.add(Conv2D(32, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=(WINDOW_SIZE, 18, 1)))
+    model.add(Conv2D(32, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=input_shape))
     model.add(Conv2D(32, kernel_size=(3, 1), strides=(1, 1), activation='relu'))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
     model.add(Flatten())
@@ -82,25 +85,25 @@ def build_model_2():
     return model
 
 
-def run_model(model, num_epochs, batch_size, model_name, checkpoint):
-    raw_train_x, raw_train_y = load_1d_data('raw', 'train')
-    raw_test_x, raw_test_y = load_1d_data('raw', 'test')
+def run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint):
+    train_x, train_y = load_1d_data(data_name, 'train')
+    test_x, test_y = load_1d_data(data_name, 'test')
 
     for epoch in range(num_epochs):
-        history = model.fit(raw_train_x, raw_train_y, validation_split=0, epochs=1,
+        history = model.fit(train_x, train_y, validation_split=0, epochs=1,
                             batch_size=batch_size, verbose=1, shuffle=True, callbacks=[checkpoint])
-        _, accuracy = model.evaluate(raw_test_x, raw_test_y, batch_size=batch_size, verbose=1)
+        _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
         print('%d : accuracy = %f' % (epoch, round(accuracy, 3) * 100))
 
     model.save_weights('%s_weights.hdf5' % model_name)
     model.save('%s.h5' % model_name)
 
 
-def load_best(model, batch_size, model_name):
-    raw_test_x, raw_test_y = load_1d_data('raw', 'test')
+def load_best(data_name, model, batch_size, model_name):
+    test_x, test_y = load_1d_data(data_name, 'test')
 
     model.load_weights('%s_weights.hdf5' % model_name)
-    _, accuracy = model.evaluate(raw_test_x, raw_test_y, batch_size=batch_size, verbose=1)
+    _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
     print('evaluation : accuracy(%) = ', round(accuracy, 3) * 100)
 
 
@@ -108,17 +111,23 @@ def main():
     file_path = './model/'
     if not os.path.exists(file_path):
         os.makedirs(file_path)
-    # model_name = file_path + 'raw_Conv2D'
-    model_name = file_path + 'raw_Conv2D_2'
 
     checkpoint = ModelCheckpoint(filepath=file_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     batch_size = 16
     num_epochs = 200
 
-    # model = build_model()
-    model = build_model_2()
-    run_model(model, num_epochs, batch_size, model_name, checkpoint)
-    load_best(batch_size, model_name)
+    # model_name = file_path + 'raw_Conv2D'
+    # model_name = file_path + 'raw_Conv2D_2'
+    model_name = file_path + 'va3_Conv2D'
+    # model_name = file_path + 'va3_Conv2D_2'
+
+    # data_name = 'raw'
+    data_name = 'va3'
+
+    model = build_model(data_name)
+    # model = build_model_2(data_name)
+    run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint)
+    load_best(data_name, model, batch_size, model_name)
 
 
 if __name__ == '__main__':
