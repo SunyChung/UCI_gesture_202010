@@ -11,7 +11,7 @@ PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 WINDOW_SIZE = 8
 
 
-def load_1d_data(data_name, data_type, sub_type=None):
+def load_1d_data(data_name, data_type):
     train_test_path = 'dataset/train_test/'
 
     if data_name == 'raw':
@@ -22,16 +22,8 @@ def load_1d_data(data_name, data_type, sub_type=None):
     x = []
     y = []
     for prefix in PREFIX_LIST:
-        if sub_type is None:
-            data = open(train_test_path + str(prefix) + '_' + str(data_name)
-                        + '_' + str(data_type) + '.csv', 'r')
-            label = open(train_test_path + str(prefix) + '_' + str(data_name)
-                         + '_' + str(data_type) + '_label.txt', 'r')
-        else:
-            data = open(train_test_path + str(prefix) + '_' + str(data_name)
-                        + '_' + str(sub_type) + '_' + str(data_type) + '.csv', 'r')
-            label = open(train_test_path + str(prefix) + '_' + str(data_name)
-                         + '_' + str(sub_type) + '_' + str(data_type) + '_label.txt', 'r')
+        data = open(train_test_path + str(prefix) + '_' + str(data_name) + '_' + str(data_type) + '.csv', 'r')
+        label = open(train_test_path + str(prefix) + '_' + str(data_name) + '_' + str(data_type) + '_label.txt', 'r')
 
         for line in data:
             temp = []
@@ -74,21 +66,19 @@ def build_model():
     return model
 
 
-def run_model(num_epochs, batch_size, model_name, checkpoint):
-    model = build_model()
+def run_model(model, num_epochs, batch_size, model_name, checkpoint):
     train_x, train_y, test_x, test_y = get_all_data()
     for epoch in range(num_epochs):
         history = model.fit(train_x, train_y, validation_split=0, epochs=1,
                             batch_size=batch_size, verbose=1, shuffle=True,
-                            callbacks=checkpoint)
+                            callbacks=[checkpoint])
         _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
         print('%d: accuracy = %f' % (epoch, round(accuracy, 3)*100))
     model.save_weights('%s_weights.hdf5' % model_name)
     model.save('%s.h5' % model_name)
 
 
-def load_best(batch_size, model_name):
-    model = build_model()
+def load_best(model, batch_size, model_name):
     test_x, test_y = load_1d_data('raw', 'test')
     model.load_weights('%s_weights.hdf5' % model_name)
     _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
@@ -105,8 +95,9 @@ def main():
     batch_size = 16
     num_epochs = 200
 
-    run_model(num_epochs, batch_size, model_name, checkpoint)
-    # load_best(batch_size, model_name)
+    model = build_model()
+    run_model(model, num_epochs, batch_size, model_name, checkpoint)
+    load_best(model, batch_size, model_name)
 
 
 if __name__ == "__main__":
