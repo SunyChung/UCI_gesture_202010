@@ -135,14 +135,28 @@ def build_model():
     return model
 
 
+def build_model_2():
+    model = Sequential()
+    model.add(Conv2D(32, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=(WINDOW_SIZE, 18, 1)))
+    model.add(Conv2D(32, kernel_size=(3, 1), strides=(1, 1), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
+    model.add(Flatten())
+    model.add(Dense(100, activation='relu'))
+    model.add(Dense(5, activation='softmax'))
+    model.summary()
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+
 def run_model(num_epochs, batch_size, model_name, checkpoint):
     raw_train_x, raw_train_y = load_1d_data('raw', 'train')
     raw_test_x, raw_test_y = load_1d_data('raw', 'test')
 
     model = build_model()
+    # model = build_model_2()
     for epoch in range(num_epochs):
         history = model.fit(raw_train_x, raw_train_y, validation_split=0, epochs=1,
-                            batch_size=batch_size, verbose=1, shuffle=True, callbacks=checkpoint)
+                            batch_size=batch_size, verbose=1, shuffle=True, callbacks=[checkpoint])
         _, accuracy = model.evaluate(raw_test_x, raw_test_y, batch_size=batch_size, verbose=1)
         print('%d : accuracy = %f' % (epoch, round(accuracy, 3) * 100))
 
@@ -154,6 +168,7 @@ def load_best(batch_size, model_name):
     raw_test_x, raw_test_y = load_1d_data('raw', 'test')
 
     model = build_model()
+    # model = build_model_2()
     model.load_weights('%s_weights.hdf5' % model_name)
     _, accuracy = model.evaluate(raw_test_x, raw_test_y, batch_size=batch_size, verbose=1)
     print('evaluation : accuracy(%) = ', round(accuracy, 3) * 100)
@@ -164,13 +179,14 @@ def main():
     if not os.path.exists(file_path):
         os.makedirs(file_path)
     model_name = file_path + 'raw_Conv2D'
+    # model_name = file_path + 'raw_Conv2D_2'
 
     checkpoint = ModelCheckpoint(filepath=file_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     batch_size = 16
     num_epochs = 200
 
     run_model(num_epochs, batch_size, model_name, checkpoint)
-    # load_best(num_epochs, batch_size, model_name)
+    load_best(batch_size, model_name)
 
 
 if __name__ == '__main__':
