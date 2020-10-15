@@ -68,16 +68,14 @@ class MVAE(nn.Module):
         else:
             return mu
 
-    def forward(self, raw, va3_vel, va3_acc, va3_sca):
-        mu, logvar = self.infer(raw, va3_vel, va3_acc, va3_sca)
+    def forward(self, raw, va3):
+        mu, logvar = self.infer(raw, va3)
         z = self.reparametrize(mu, logvar)
         raw_recon = self.raw_decoder(z)
-        va3_vel_recon = self.va3_vel_decoder(z)
-        va3_acc_recon = self.va3_acc_decoder(z)
-        va3_sca_recon = self.va3_sca_decoder(z)
-        return raw_recon, va3_vel_recon, va3_acc_recon, va3_sca_recon, mu, logvar
+        va3_recon = self.va3_decoder(z)
+        return raw_recon, va3_recon, mu, logvar
 
-    def infer(self, raw, va3_vel, va3_acc, va3_sca):
+    def infer(self, raw, va3):
         batch_size = raw.size(0)
         use_cuda = next(self.parameters().is_cuda)
 
@@ -88,20 +86,10 @@ class MVAE(nn.Module):
             mu = torch.cat((mu, raw_mu.unsqueeze(0)), dim=0)
             logvar = torch.cat((logvar, raw_logvar.unsqueeze(0)), dim=0)
 
-        if va3_vel is not None:
-            va3_vel_mu, va3_vel_logvar = self.va3_vel_encoder(va3_vel)
-            mu = torch.cat((mu, va3_vel_mu.unsqueeze(0)), dim=0)
-            logvar = torch.cat((logvar, va3_vel_logvar.unsqueeze(0)), dim=0)
-
-        if va3_acc is not None:
-            va3_acc_mu, va3_acc_logvar = self.va3_acc_encoder(va3_acc)
-            mu = torch.cat((mu, va3_acc_mu.unsqueeze(0)), dim=0)
-            logvar = torch.cat((logvar, va3_acc_logvar.unsqueeze(0)), dim=1)
-
-        if va3_sca is not None:
-            va3_sca_mu, va3_sca_logvar = self.va3_sca_encoder(va3_sca)
-            mu = torch.cat((mu, va3_sca_mu.unsqueeze(0)), dim=0)
-            logvar = torch.cat((logvar, va3_sca_logvar.unsqueeze(0)), dim=0)
+        if va3 is not None:
+            va3_mu, va3_logvar = self.va3_vel_encoder(va3)
+            mu = torch.cat((mu, va3_mu.unsqueeze(0)), dim=0)
+            logvar = torch.cat((logvar, va3_logvar.unsqueeze(0)), dim=0)
 
         mu, logvar = self.experts(mu, logvar)
         return mu, logvar
