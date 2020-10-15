@@ -1,62 +1,53 @@
 # base code : https://github.com/mhw32/multimodal-vae-public
-
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
-
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-DATA_NAME_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
+PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 WINDOW_SIZE = 8
 
 
-def load_data(data_name, data_type, coord_len, sub_type=None):
+def load_1d_data(data_name, data_type):
     train_test_path = 'dataset/train_test/'
 
     if data_name == 'raw':
         data_dict = {'Hold': 0, 'Rest': 1, 'Preparation': 2, 'Retraction': 3, 'Stroke': 4}
     else:
         data_dict = {'H': 0, 'D': 1, 'P': 2, 'R': 3, 'S': 4}
+
     x = []
     y = []
-    for name in DATA_NAME_LIST:
-        if sub_type is None:
-            data = open(train_test_path + str(name) + '_' + str(data_name) + '_' + str(data_type) + '.csv', 'r')
-            label = open(train_test_path + str(name) + '_' + str(data_name) + '_' + str(data_type) + '_label.txt', 'r')
-        else:
-            data = open(train_test_path + str(name) + '_' + str(data_name)
-                        + '_' + str(sub_type) + '_' + str(data_type) + '.csv', 'r')
-            label = open(train_test_path + str(name) + '_' + str(data_name)
-                         + '_' + str(sub_type) + '_' + str(data_type) + '_label.txt', 'r')
+    for prefix in PREFIX_LIST:
+        data = open(train_test_path + str(prefix) + '_' + str(data_name) + '_' + str(data_type) + '.csv', 'r')
+        label = open(train_test_path + str(prefix) + '_' + str(data_name) + '_' + str(data_type) + '_label.txt', 'r')
+
         for line in data:
             temp = []
             for value in line.rstrip().split(','):
                 temp = temp + [float(value)]
+            # print(np.shape(temp))
             x.append(temp)
+
         for l in label:
-            y.append(data_dict[l.rstrip()])
-    print(np.shape(x))
-    x = np.array(x).reshape((-1, WINDOW_SIZE, coord_len))
+            y.append(data_dict[l.rstrip().replace(',', '')])
+
+    if data_name == 'raw':
+        x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
+    else:
+        x = np.array(x).reshape((-1, WINDOW_SIZE, 32))
     y = np.array(y).reshape((-1, 1))
     print(np.shape(x))
     print(np.shape(y))
     return x, y
 
 
-raw_train_x, raw_train_y = load_data('raw', 'train', 18)
-raw_test_x, raw_test_y = load_data('raw', 'test', 18)
+raw_train_x, raw_train_y = load_1d_data('raw', 'train')
+raw_test_x, raw_test_y = load_1d_data('raw', 'test')
 
-va3_vel_train_x, va3_vel_train_y = load_data('va3', 'train', 12, 'vel')
-va3_acc_train_x, va3_acc_train_y = load_data('va3', 'train', 12, 'acc')
-va3_sca_train_x, va3_sca_train_y = load_data('va3', 'train', 8, 'sca')
-
-va3_vel_test_x, va3_vel_test_y = load_data('va3', 'test', 12, 'vel')
-va3_acc_test_x, va3_acc_test_y = load_data('va3', 'test', 12, 'acc')
-va3_sca_test_x, va3_sca_test_y = load_data('va3', 'test', 8, 'sca')
+va3_train_x, va3_train_y = load_1d_data('va3', 'train')
+va3_test_x, va3_test_y = load_1d_data('va3', 'test')
 
 
 class MVAE(nn.Module):
@@ -64,12 +55,8 @@ class MVAE(nn.Module):
         super(MVAE, self).__init__()
         self.raw_encoder = RawEncoder(n_latents, n_coords=18)
         self.raw_decoder = RawDecoder(n_latents, n_coords=18)
-        self.va3_vel_encoder = Va3Encoder(n_latents, n_coords=12)
-        self.va3_vel_decoder = Va3Decoder(n_latents, n_coords=12)
-        self.va3_acc_encoder = Va3Encoder(n_latents, n_coords=12)
-        self.va3_acc_decoder = Va3Decoder(n_latents, n_coords=12)
-        self.va3_sca_encoder = Va3Encoder(n_latents, n_coords=8)
-        self.va3_sca_decoder = Va3Decoder(n_latents, n_coords=8)
+        self.va3_encoder = Va3Encoder(n_latents, n_coords=32)
+        self.va3_decoder = Va3Decoder(n_latents, n_coords=32)
         self.experts = ProductOfExperts()
         self.n_latents = n_latents
 
@@ -123,7 +110,6 @@ class MVAE(nn.Module):
 class RawEncoder(nn.Module):
     def __init__(self, n_latents, n_coords):
         super(RawEncoder, self).__init__()
-        # what dimension should I use?!
         self.fc1 = nn.Embedding(n_coords, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc31 = nn.Linear(512, n_latents)
@@ -139,7 +125,6 @@ class RawEncoder(nn.Module):
 class RawDecoder(nn.Module):
     def __init__(self, n_latents, n_coords):
         super(RawDecoder, self).__init__()
-        # what dimension should I use?!
         self.fc1 = nn.Linear(n_latents, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
@@ -156,7 +141,6 @@ class RawDecoder(nn.Module):
 class Va3Encoder(nn.Module):
     def __init__(self, n_latents, n_coords):
         super(Va3Encoder, self).__init__()
-        # what dimension should I use?!
         self.fc1 = nn.Embedding(n_coords, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc31 = nn.Linear(512, n_latents)
@@ -172,7 +156,6 @@ class Va3Encoder(nn.Module):
 class Va3Decoder(nn.Module):
     def __init__(self, n_latents, n_coords):
         super(Va3Decoder, self).__init__()
-        # what dimension should I use?!
         self.fc1 = nn.Linear(n_latents, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
