@@ -5,58 +5,19 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
-WINDOW_SIZE = 8
-
-
-def load_1d_data(data_name, data_type):
-    train_test_path = 'dataset/train_test/'
-
-    if data_name == 'raw':
-        data_dict = {'Hold': 0, 'Rest': 1, 'Preparation': 2, 'Retraction': 3, 'Stroke': 4}
-    else:
-        data_dict = {'H': 0, 'D': 1, 'P': 2, 'R': 3, 'S': 4}
-
-    x = []
-    y = []
-    for prefix in PREFIX_LIST:
-        data = open(train_test_path + str(prefix) + '_' + str(data_name) + '_' + str(data_type) + '.csv', 'r')
-        label = open(train_test_path + str(prefix) + '_' + str(data_name) + '_' + str(data_type) + '_label.txt', 'r')
-
-        for line in data:
-            temp = []
-            for value in line.rstrip().split(','):
-                temp = temp + [float(value)]
-            # print(np.shape(temp))
-            x.append(temp)
-
-        for l in label:
-            y.append(data_dict[l.rstrip().replace(',', '')])
-
-    if data_name == 'raw':
-        x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
-    else:
-        x = np.array(x).reshape((-1, WINDOW_SIZE, 32))
-    y = np.array(y).reshape((-1, 1))
-    print(np.shape(x))
-    print(np.shape(y))
-    return x, y
-
+from .data_loader import load_1d_data
 
 raw_train_x, raw_train_y = load_1d_data('raw', 'train')
 raw_test_x, raw_test_y = load_1d_data('raw', 'test')
-
-va3_train_x, va3_train_y = load_1d_data('va3', 'train')
-va3_test_x, va3_test_y = load_1d_data('va3', 'test')
 
 
 class MVAE(nn.Module):
     def __init__(self, n_latents):
         super(MVAE, self).__init__()
-        self.raw_encoder = RawEncoder(n_latents, n_coords=18)
-        self.raw_decoder = RawDecoder(n_latents, n_coords=18)
-        self.va3_encoder = Va3Encoder(n_latents, n_coords=32)
-        self.va3_decoder = Va3Decoder(n_latents, n_coords=32)
+        self.feature_encoder = FeatureEncoder(n_latents)
+        self.feature_decoder = FeatureDecoder(n_latents)
+        self.label_encoder = LabelEncoder(n_latents)
+        self.label_decoder = LabelDecoder(n_latents)
         self.experts = ProductOfExperts()
         self.n_latents = n_latents
 
@@ -68,37 +29,37 @@ class MVAE(nn.Module):
         else:
             return mu
 
-    def forward(self, raw, va3):
-        mu, logvar = self.infer(raw, va3)
+    def forward(self, feature, label):
+        mu, logvar = self.infer(feature, label)
         z = self.reparametrize(mu, logvar)
-        raw_recon = self.raw_decoder(z)
-        va3_recon = self.va3_decoder(z)
-        return raw_recon, va3_recon, mu, logvar
+        feature_recon = self.feature_decoder(z)
+        label_recon = self.label_decoder(z)
+        return feature_recon, label_recon, mu, logvar
 
-    def infer(self, raw, va3):
-        batch_size = raw.size(0)
+    def infer(self, features, labels):
+        batch_size = features.size(0)
         use_cuda = next(self.parameters().is_cuda)
 
         mu, logvar = prior_expert((1, batch_size, self.n_latents), use_cuda=use_cuda)
 
-        if raw is not None:
-            raw_mu, raw_logvar = self.raw_encoder(raw)
-            mu = torch.cat((mu, raw_mu.unsqueeze(0)), dim=0)
-            logvar = torch.cat((logvar, raw_logvar.unsqueeze(0)), dim=0)
+        if features is not None:
+            feture_mu, feature_logvar = self.feature_encoder(features)
+            mu = torch.cat((mu, feture_mu.unsqueeze(0)), dim=0)
+            logvar = torch.cat((logvar, feature_logvar.unsqueeze(0)), dim=0)
 
-        if va3 is not None:
-            va3_mu, va3_logvar = self.va3_vel_encoder(va3)
-            mu = torch.cat((mu, va3_mu.unsqueeze(0)), dim=0)
-            logvar = torch.cat((logvar, va3_logvar.unsqueeze(0)), dim=0)
+        if labels is not None:
+            label_mu, label_logvar = self.label_encoder(labels)
+            mu = torch.cat((mu, label_mu.unsqueeze(0)), dim=0)
+            logvar = torch.cat((logvar, label_logvar.unsqueeze(0)), dim=0)
 
         mu, logvar = self.experts(mu, logvar)
         return mu, logvar
 
 
-class RawEncoder(nn.Module):
-    def __init__(self, n_latents, n_coords):
-        super(RawEncoder, self).__init__()
-        self.fc1 = nn.Embedding(n_coords, 512)
+class FeatureEncoder(nn.Module):
+    def __init__(self, n_latents):
+        super(FeatureEncoder, self).__init__()
+        self.fc1 = nn.Embedding(18, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc31 = nn.Linear(512, n_latents)
         self.fc32 = nn.Linear(512, n_latents)
@@ -110,13 +71,13 @@ class RawEncoder(nn.Module):
         return self.fc31(h), self.fc32(h)
 
 
-class RawDecoder(nn.Module):
-    def __init__(self, n_latents, n_coords):
-        super(RawDecoder, self).__init__()
+class FeatureDecoder(nn.Module):
+    def __init__(self, n_latents):
+        super(FeatureDecoder, self).__init__()
         self.fc1 = nn.Linear(n_latents, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, n_coords)
+        self.fc4 = nn.Linear(512, 18)
         self.swish = Swish()
 
     def forward(self, z):
@@ -126,10 +87,10 @@ class RawDecoder(nn.Module):
         return self.fc4(h)
 
 
-class Va3Encoder(nn.Module):
-    def __init__(self, n_latents, n_coords):
-        super(Va3Encoder, self).__init__()
-        self.fc1 = nn.Embedding(n_coords, 512)
+class LabelEncoder(nn.Module):
+    def __init__(self, n_latents):
+        super(LabelEncoder, self).__init__()
+        self.fc1 = nn.Embedding(5, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc31 = nn.Linear(512, n_latents)
         self.fc32 = nn.Linear(512, n_latents)
@@ -141,13 +102,13 @@ class Va3Encoder(nn.Module):
         return self.fc31(h), self.fc32(h)
 
 
-class Va3Decoder(nn.Module):
-    def __init__(self, n_latents, n_coords):
-        super(Va3Decoder, self).__init__()
+class LabelDecoder(nn.Module):
+    def __init__(self, n_latents):
+        super(LabelDecoder, self).__init__()
         self.fc1 = nn.Linear(n_latents, 512)
         self.fc2 = nn.Linear(512, 512)
         self.fc3 = nn.Linear(512, 512)
-        self.fc4 = nn.Linear(512, n_coords)
+        self.fc4 = nn.Linear(512, 5)
         self.swish = Swish()
 
     def forward(self, z):
