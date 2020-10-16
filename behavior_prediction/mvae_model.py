@@ -5,10 +5,10 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-from .data_loader import load_1d_data
+from behavior_prediction.data_loader import load_data
 
-raw_train_x, raw_train_y = load_1d_data('raw', 'train')
-raw_test_x, raw_test_y = load_1d_data('raw', 'test')
+raw_train_x, raw_train_y = load_data('raw', 'train', return_type='1D')
+raw_test_x, raw_test_y = load_data('raw', 'test', return_type='1D')
 
 
 class MVAE(nn.Module):
@@ -38,7 +38,7 @@ class MVAE(nn.Module):
 
     def infer(self, features, labels):
         batch_size = features.size(0)
-        use_cuda = next(self.parameters().is_cuda)
+        use_cuda = True
 
         mu, logvar = prior_expert((1, batch_size, self.n_latents), use_cuda=use_cuda)
 
@@ -66,6 +66,12 @@ class FeatureEncoder(nn.Module):
         self.swish = Swish()
 
     def forward(self, x):
+        '''
+        RuntimeError: Expected tensor for argument #1 'indices' to have scalar type Long;
+        but got torch.cuda.DoubleTensor instead (while checking arguments for embedding)
+
+        self.fc1 = nn.Embedding(18, 512) conflicts!
+        '''
         h = self.swish(self.fc1(x))
         h = self.swish(self.fc2(h))
         return self.fc31(h), self.fc32(h)

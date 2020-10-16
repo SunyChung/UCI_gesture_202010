@@ -9,8 +9,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-from .mvae_model import MVAE
-from .data_loader import load_1d_data
+from behavior_prediction.mvae_model import MVAE
+from behavior_prediction.data_loader import load_data
 
 
 def binary_cross_entropy_with_logit(input, target):
@@ -70,103 +70,120 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--n_latents', type=int, default=64,
+                    help='size of the latent embedding [default : 64]')
+parser.add_argument('--batch_size', type=int, default=16,
+                    help='input batch size for training [default : 16')
+parser.add_argument('--epochs', type=int, default=200,
+                    help='number of epochs to train [default : 200]')
+parser.add_argument('--annealing-epochs', type=int, default=100, metavar='N',
+                    help='number of epochs to anneal KL for [default : 100]')
+parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
+                    help='learning rate [default : 1e-3]')
+parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+                    help='how many batches to wait before logging training status [default : 10]')
+parser.add_argument('--lambda-feature', type=float, default=1.,
+                    help='multiplier for feature reconstruction [default : 1]')
+parser.add_argument('--lambda-label', type=float, default=1.,
+                    help='multiplier for label reconstruction [default : 1]')
+args = parser.parse_args()
+# args.cuda = args.cuda and torch.cuda.is_available()
+args.cuda = True
+
+train_features, train_labels = load_data('raw', 'train', return_type='1D')
+train_features = torch.from_numpy(train_features)
+train_labels = torch.from_numpy(train_labels)
+N_mini_batches = len(train_features)
+test_features, test_labels = load_data('raw', 'test', return_type='1D')
+test_features = torch.from_numpy(test_features)
+test_labels = torch.from_numpy(test_labels)
+
+model = MVAE(args.n_latents)
+optimizer = optim.Adam(model.parameters(), lr=args.lr)
+
+
+def train(epoch):
+    model.train()
+    train_loss_meter = AverageMeter()
+
+    for batch_idx, (feature, label) in enumerate(zip(train_features, train_labels)):
+        if epoch < args.annealing_epochs:
+            annealing_factor = (float(batch_idx + (epoch - 1) * N_mini_batches + 1) /
+                                float(args.annealing_epochs * N_mini_batches))
+        else:
+            annealing_factor = 1.0
+
+        '''
+        The cuda() method is defined for tensors, while it seems you are calling it on a numpy array.
+        Try to transform the numpy array to a tensor before calling tensor.cuda() via: tensor = torch.from_numpy(array).
+        '''
+        if args.cuda:
+            feature = feature.cuda()
+            label = label.cuda()
+
+        feature = Variable(feature)
+        label = Variable(label)
+        batch_size = len(feature)
+
+        optimizer.zero_grad()
+
+        recon_feature_1, recon_label_1, mu_1, logvar_1 = model(feature, label)
+        recon_feature_2, recon_label_2, mu_2, logvar_2 = model(feature)
+        recon_feature_3, recon_label_3, mu_3, logvar_3 = model(label=label)
+
+        joint_loss = elbo_loss(recon_feature_1, feature, recon_label_1, label, mu_1, logvar_1,
+                               lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
+                               annealing_factor=annealing_factor)
+        feature_loss = elbo_loss(recon_feature_2, feature, None, None, mu_2, logvar_2,
+                                 lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
+                                 annealing_factor=annealing_factor)
+        label_loss = elbo_loss(None, None, recon_label_3, label, mu_3, logvar_3,
+                               lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
+                               annealing_factor=annealing_factor)
+        train_loss = joint_loss + feature_loss + label_loss
+        train_loss_meter.update(train_loss.data[0], batch_size)
+        train_loss.backward()
+        optimizer.step()
+
+        if batch_idx % args.log_interval == 0:
+            print('train epoch : {} [{}/{} ({:.0f}%)]\tLoss : {:.6f}\tAnnealing-Factor : {:.3f}'
+                  .format(epoch, batch_idx * len(feature), len(train_features),
+                          100. * batch_idx / len(train_features), train_loss_meter.avg, annealing_factor))
+    print('----- epoch : {}\tloss : {:.4f} -----'.format(epoch, train_loss_meter.avg))
+
+
+def mvae_test(epoch):
+    model.eval()
+    test_loss_meter = AverageMeter()
+
+    for batch_idx, (feature, label) in enumerate(zip(test_features, test_labels)):
+        if args.cuda:
+            feature = feature.cuda()
+            label = label.cuda()
+
+        feature = Variable(feature, volatile=True)
+        label = Variable(label, volatile=True)
+        batch_size = len(feature)
+
+        recon_feature_1, recon_label_1, mu_1, logvar_1 = model(feature, label)
+        recon_feature_2, recon_label_2, mu_2, logvar_2 = model(feature)
+        recon_feature_3, recon_label_3, mu_3, logvar_3 = model(label=label)
+
+        joint_loss = elbo_loss(recon_feature_1, feature, recon_label_1, label, mu_1, logvar_1)
+        feature_loss = elbo_loss(recon_feature_2, feature, None, None, mu_2, logvar_2)
+        label_loss = elbo_loss(None, None, recon_label_3, label, mu_3, logvar_3)
+        test_loss = joint_loss + feature_loss + label_loss
+        test_loss_meter.update(test_loss.data[0], batch_size)
+
+    print('----- test loss : {:.4f}'.format(test_loss_meter.avg))
+    return test_loss_meter.avg
+
+
+def main():
+    train(epoch=args.epochs)
+
+
 if __name__ == '__main__':
-
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--n_latents', type=int, default=64,
-                        help='size of the latent embedding [default : 64]')
-    parser.add_argument('--batch_size', type=int, default=16,
-                        help='input batch size for training [default : 16')
-    parser.add_argument('--epochs', type=int, default=200,
-                        help='number of epochs to train [default : 200]')
-    parser.add_argument('--annealing-epochs', type=int, default=100, metavar='N',
-                        help='number of epochs to anneal KL for [default : 100]')
-    parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
-                        help='learning rate [default : 1e-3]')
-    parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                        help='how many batches to wait before logging training status [default : 10]')
-    parser.add_argument('--lambda-feature', type=float, default=1.,
-                        help='multiplier for feature reconstruction [default : 1]')
-    parser.add_argument('--lambda-label', type=float, default=1.,
-                        help='multiplier for label reconstruction [default : 1]')
-    args = parser.parse_args()
-    args.cuda = args.cuda and torch.cuda.is_available()
-
-    train_features, train_labels = load_1d_data('raw', 'train')
-    N_mini_batches = len(train_features)
-    test_features, test_labels = load_1d_data('raw', 'test')
-
-    model = MVAE(args.n_latents)
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-
-    def train(epoch):
-        model.train()
-        train_loss_meter = AverageMeter()
-
-        for batch_idx, (feature, label) in enumerate(zip(train_features, train_labels)):
-            if epoch < args.annealing_epochs:
-                annealing_factor = (float(batch_idx + (epoch - 1) * N_mini_batches + 1) /
-                                    float(args.annealing_epochs * N_mini_batches))
-            else:
-                annealing_factor = 1.0
-
-            if args.cuda:
-                feature = feature.cuda()
-                label = label.cuda()
-
-            feature = Variable(feature)
-            label = Variable(label)
-            batch_size = len(feature)
-
-            optimizer.zero_grad()
-
-            recon_feature_1, recon_label_1, mu_1, logvar_1 = model(feature, label)
-            recon_feature_2, recon_label_2, mu_2, logvar_2 = model(feature)
-            recon_feature_3, recon_label_3, mu_3, logvar_3 = model(label=label)
-
-            joint_loss = elbo_loss(recon_feature_1, feature, recon_label_1, label, mu_1, logvar_1,
-                                   lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
-                                   annealing_factor=annealing_factor)
-            feature_loss = elbo_loss(recon_feature_2, feature, None, None, mu_2, logvar_2,
-                                     lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
-                                     annealing_factor=annealing_factor)
-            label_loss = elbo_loss(None, None, recon_label_3, label, mu_3, logvar_3,
-                                   lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
-                                   annealing_factor=annealing_factor)
-            train_loss = joint_loss + feature_loss + label_loss
-            train_loss_meter.update(train_loss.data[0], batch_size)
-            train_loss.backward()
-            optimizer.step()
-
-            if batch_idx % args.log_interval == 0:
-                print('train epoch : {} [{}/{} ({:.0f}%)]\tLoss : {:.6f}\tAnnealing-Factor : {:.3f}'
-                      .format(epoch, batch_idx * len(feature), len(train_features),
-                              100. * batch_idx / len(train_features), train_loss_meter.avg, annealing_factor))
-        print('----- epoch : {}\tloss : {:.4f} -----'.format(epoch, train_loss_meter.avg))
-
-    def test(epoch):
-        model.eval()
-        test_loss_meter = AverageMeter()
-
-        for batch_idx, (feature, label) in enumerate(zip(test_features, test_labels)):
-            if args.cuda:
-                feature = feature.cuda()
-                label = label.cuda()
-
-            feature = Variable(feature, volatile=True)
-            label = Variable(label, volatile=True)
-            batch_size = len(feature)
-
-            recon_feature_1, recon_label_1, mu_1, logvar_1 = model(feature, label)
-            recon_feature_2, recon_label_2, mu_2, logvar_2 = model(feature)
-            recon_feature_3, recon_label_3, mu_3, logvar_3 = model(label=label)
-
-            joint_loss = elbo_loss(recon_feature_1, feature, recon_label_1, label, mu_1, logvar_1)
-            feature_loss = elbo_loss(recon_feature_2, feature, None, None, mu_2, logvar_2)
-            label_loss = elbo_loss(None, None, recon_label_3, label, mu_3, logvar_3)
-            test_loss = joint_loss + feature_loss + label_loss
-            test_loss_meter.update(test_loss.data[0], batch_size)
-
-        print('----- test loss : {:.4f}'.format(test_loss_meter.avg))
-        return test_loss_meter.avg
+    main()

@@ -7,7 +7,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.layers import MaxPooling2D
 
-from .data_loader import load_1d_data
+from behavior_prediction.data_loader import load_data
 
 WINDOW_SIZE = 8
 
@@ -49,8 +49,8 @@ def build_model_2(data_name):
 
 
 def run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint):
-    train_x, train_y = load_1d_data(data_name, 'train')
-    test_x, test_y = load_1d_data(data_name, 'test')
+    train_x, train_y = load_data(data_name, 'train', return_type='2D')
+    test_x, test_y = load_data(data_name, 'test', return_type='2D')
 
     for epoch in range(num_epochs):
         history = model.fit(train_x, train_y, validation_split=0, epochs=1,
@@ -63,7 +63,7 @@ def run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint):
 
 
 def load_best(data_name, model, batch_size, model_name):
-    test_x, test_y = load_1d_data(data_name, 'test')
+    test_x, test_y = load_data(data_name, 'test', return_type='2D')
 
     model.load_weights('%s_weights.hdf5' % model_name)
     _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)

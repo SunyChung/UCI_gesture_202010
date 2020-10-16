@@ -4,7 +4,7 @@ PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 WINDOW_SIZE = 8
 
 
-def load_1d_data(data_name, data_type):
+def load_data(data_name, data_type, return_type):
     train_test_path = './dataset/train_test/'
 
     if data_name == 'raw':
@@ -28,13 +28,20 @@ def load_1d_data(data_name, data_type):
 
         for l in label:
             y.append(data_dict[l.rstrip()])
-    # for Conv1D input!
+    # for Conv1D input :
     # x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
-    # for Conv2D input!!
-    if data_name == 'raw':
-        x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+    # for Conv2D input :
+    # x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+    if return_type == '1D':
+        if data_name == 'raw':
+            x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
+        else:
+            x = np.array(x).reshape((-1, WINDOW_SIZE, 32))
     else:
-        x = np.array(x).reshape((-1, WINDOW_SIZE, 32, 1))
+        if data_name == 'raw':
+            x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+        else:
+            x = np.array(x).reshape((-1, WINDOW_SIZE, 32, 1))
     y = np.array(y).reshape((-1, 1))
     print(np.shape(x))
     print(np.shape(y))

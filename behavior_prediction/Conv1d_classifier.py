@@ -1,20 +1,20 @@
-import numpy as np
 import os
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Flatten
+
 from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.layers import Conv1D
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Flatten
 from tensorflow.keras.layers import MaxPooling1D
+from tensorflow.keras.models import Sequential
 
-from .data_loader import load_1d_data
+from behavior_prediction.data_loader import load_data
 
 WINDOW_SIZE = 8
 
 
 def get_all_data(data_name):
-    train_x, train_y = load_1d_data(data_name, 'train')
-    test_x, test_y = load_1d_data(data_name, 'test')
+    train_x, train_y = load_data(data_name, 'train', return_type='1D')
+    test_x, test_y = load_data(data_name, 'test', return_type='1D')
     return train_x, train_y, test_x, test_y
 
 
@@ -48,7 +48,7 @@ def run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint):
 
 
 def load_best(data_name, model, batch_size, model_name):
-    test_x, test_y = load_1d_data(data_name,  'test')
+    test_x, test_y = load_data(data_name, 'test', return_type='1D')
     model.load_weights('%s_weights.hdf5' % model_name)
     _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
     print('evaluation: accuracy(%)=  ', round(accuracy, 3)*100)
