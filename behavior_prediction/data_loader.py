@@ -76,14 +76,14 @@ def load_data_with_label(data_name, data_type):
         for l in label:
             y.append(data_dict[l.rstrip()])
 
-    print(np.shape(x))
-    print(np.shape(y))
+    # print(np.shape(x))
+    # print(np.shape(y))
     x = np.array(x).reshape((-1, WINDOW_SIZE, 19))
     y = np.array(y).reshape((-1, WINDOW_SIZE, 1))
-    print(np.shape(x))
-    print(np.shape(y))
+    # print(np.shape(x))
+    # print(np.shape(y))
     return x, y
 
-data, label = load_data_with_label('raw', 'train')
+# data, label = load_data_with_label('raw', 'train')
 # print(data)
 # print(label)

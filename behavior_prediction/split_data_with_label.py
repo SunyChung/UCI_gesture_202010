@@ -140,4 +140,4 @@ raw_test_label_path = os.path.join('dataset', 'raw_test_list.csv')
 pro_test_label_path = os.path.join('dataset', 'va3_test_list.csv')
 
 split_data_with_label(DATA_NAME_LIST, RAW_LABELS, 'raw', WINDOW_SIZE, SPLIT_SIZE, raw_test_label_path)
-# split_data_with_label(DATA_NAME_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE, pro_test_label_path)
+split_data_with_label(DATA_NAME_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE, pro_test_label_path)

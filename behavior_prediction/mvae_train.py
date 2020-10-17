@@ -1,10 +1,5 @@
 # base code : https://github.com/mhw32/multimodal-vae-public
-import os
-import sys
-import shutil
-
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.autograd import Variable
@@ -38,13 +33,13 @@ def elbo_loss(recon_features, features, recon_label, label, mu, logvar,
     if recon_features is not None and features is not None:
         feature_bce = torch.sum(binary_cross_entropy_with_logit(
             # check the feature dimensions!
-            recon_features.view(-1, 8, 18),
-            features.view(-1, 8, 18)), dim=1
+            recon_features.view(-1, 8, 19),
+            features.view(-1, 8, 19)), dim=1
         )
     if recon_label is not None and label is not None:
         label_bce = torch.sum(cross_entropy(
             # check the feature dimensions!
-            recon_label.view(-1, 8, 1),
+            recon_label.view(-1, 8, 5),
             label.view(-1, 8, 1)), dim=1
         )
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
@@ -90,15 +85,24 @@ parser.add_argument('--lambda-label', type=float, default=1.,
                     help='multiplier for label reconstruction [default : 1]')
 args = parser.parse_args()
 # args.cuda = args.cuda and torch.cuda.is_available()
-args.cuda = True
+args.cuda = False
 
 train_features, train_labels = load_data_with_label('raw', 'train')
-train_features = torch.from_numpy(train_features)
+train_features = torch.from_numpy(train_features).float()
 train_labels = torch.from_numpy(train_labels)
+# print(train_features.type())  # torch.DoubleTensor
+# print(train_labels.type())  # torch.LongTensor
+# print('train_features : ', np.shape(train_features))  # torch.Size([6888, 8, 19])
+# print('train_labels : ', np.shape(train_labels))  # torch.Size([6888, 8, 1])
+
 N_mini_batches = len(train_features)
+# print('mini batch length : ', N_mini_batches)  # 6888
+
 test_features, test_labels = load_data_with_label('raw', 'test')
 test_features = torch.from_numpy(test_features)
 test_labels = torch.from_numpy(test_labels)
+# print('test_features : ', np.shape(test_features))  # torch.Size([2956, 8, 19])
+# print('test_labels : ', np.shape(test_labels))  # torch.Size([2956, 8, 1])
 
 model = MVAE(args.n_latents)
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -127,20 +131,32 @@ def train(epoch):
         label = Variable(label)
         batch_size = len(feature)
 
-        optimizer.zero_grad()
+        # print(feature.shape)  # torch.Size([8, 19])
+        # print(label.shape)  # torch.Size([8, 1])
+        # print('feature : ', feature)
+        # feature :  tensor([[5.3474, 4.3637, 1.5019, 5.2590, 4.3193, 1.4887, 5.0379, 1.6183, 1.7784,
+        #          5.0628, 4.2297, 1.7726, 4.9729, 4.3011, 1.5648, 5.5539, 4.3705, 1.5535,
+        #          1.0000],
+        # note : the last value returned as float value !!
+        # print('label : ', label)  # it returns as the integer value
+        # print('batch_size : ', batch_size)  # 8
 
+        optimizer.zero_grad()
         recon_feature_1, recon_label_1, mu_1, logvar_1 = model(feature, label)
+        print('recon_feature_1 : ', recon_feature_1.shape)  # torch.Size([8, 19])
+        print('recon_label_1 : ', recon_label_1.shape)  # torch.Size([8, 5])
+        # print(recon_label_1)
         recon_feature_2, recon_label_2, mu_2, logvar_2 = model(feature)
         recon_feature_3, recon_label_3, mu_3, logvar_3 = model(label=label)
 
         joint_loss = elbo_loss(recon_feature_1, feature, recon_label_1, label, mu_1, logvar_1,
-                               lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
+                               lambda_feature=args.lambda_feature, lambda_label=args.lambda_label,
                                annealing_factor=annealing_factor)
         feature_loss = elbo_loss(recon_feature_2, feature, None, None, mu_2, logvar_2,
-                                 lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
+                                 lambda_feature=args.lambda_feature, lambda_label=args.lambda_label,
                                  annealing_factor=annealing_factor)
         label_loss = elbo_loss(None, None, recon_label_3, label, mu_3, logvar_3,
-                               lambda_feature=args.lamda_feature, lambda_label=args.lamda_label,
+                               lambda_feature=args.lambda_feature, lambda_label=args.lambda_label,
                                annealing_factor=annealing_factor)
         train_loss = joint_loss + feature_loss + label_loss
         train_loss_meter.update(train_loss.data[0], batch_size)
@@ -177,7 +193,7 @@ def mvae_test(epoch):
         test_loss = joint_loss + feature_loss + label_loss
         test_loss_meter.update(test_loss.data[0], batch_size)
 
-    print('----- test loss : {:.4f}'.format(test_loss_meter.avg))
+    print('----- test loss : {:.4f} -----'.format(test_loss_meter.avg))
     return test_loss_meter.avg
 
 
