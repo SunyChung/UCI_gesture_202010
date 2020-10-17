@@ -17,30 +17,38 @@ def binary_cross_entropy_with_logit(input, target):
 
 
 def cross_entropy(input, target, eps=1e-6):
+    # print(input)
+    # print(target)
+    # print(input.shape)  # torch.Size([8, 5])
+    # print(target.shape)  # torch.Size([8, 1])
+
     if not (target.size(0) == input.size(0)):
         raise ValueError('target size ({}) must be the same as the input size ({})'
-                         .format(target.size(0), input.size(0)))
+                         .format(target.size(1), input.size(1)))
     log_input = F.log_softmax(input + eps, dim=1)
     y_onehot = Variable(log_input.data.new(log_input.size()).zero_())
-    y_onehot = y_onehot.scatter(1, target.unsqueeze(1), 1)
+    y_onehot = y_onehot.scatter(1, target, 1)
     loss = y_onehot * log_input
     return -loss
 
 
+# print(label.shape)  # torch.Size([8, 1])
+# print('recon_feature_1 : ', recon_feature_1.shape)  # torch.Size([8, 19])
+# print('recon_label_1 : ', recon_label_1.shape)  # torch.Size([8, 5])
 def elbo_loss(recon_features, features, recon_label, label, mu, logvar,
               lambda_feature=1.0, lambda_label=1.0, annealing_factor=1):
     feature_bce, label_bce = 0, 0
     if recon_features is not None and features is not None:
         feature_bce = torch.sum(binary_cross_entropy_with_logit(
             # check the feature dimensions!
-            recon_features.view(-1, 8, 19),
-            features.view(-1, 8, 19)), dim=1
+            recon_features,
+            features), dim=1
         )
     if recon_label is not None and label is not None:
         label_bce = torch.sum(cross_entropy(
             # check the feature dimensions!
-            recon_label.view(-1, 8, 5),
-            label.view(-1, 8, 1)), dim=1
+            recon_label,
+            label), dim=1
         )
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
     ELBO = torch.mean(lambda_feature * feature_bce + lambda_label * label_bce
@@ -143,8 +151,8 @@ def train(epoch):
 
         optimizer.zero_grad()
         recon_feature_1, recon_label_1, mu_1, logvar_1 = model(feature, label)
-        print('recon_feature_1 : ', recon_feature_1.shape)  # torch.Size([8, 19])
-        print('recon_label_1 : ', recon_label_1.shape)  # torch.Size([8, 5])
+        # print('recon_feature_1 : ', recon_feature_1.shape)  # torch.Size([8, 19])
+        # print('recon_label_1 : ', recon_label_1.shape)  # torch.Size([8, 5])
         # print(recon_label_1)
         recon_feature_2, recon_label_2, mu_2, logvar_2 = model(feature)
         recon_feature_3, recon_label_3, mu_3, logvar_3 = model(label=label)
@@ -159,7 +167,12 @@ def train(epoch):
                                lambda_feature=args.lambda_feature, lambda_label=args.lambda_label,
                                annealing_factor=annealing_factor)
         train_loss = joint_loss + feature_loss + label_loss
-        train_loss_meter.update(train_loss.data[0], batch_size)
+
+        print(train_loss)  # tensor(56.3344, grad_fn=<AddBackward0>)
+        # train_loss_meter.update(train_loss.data[0], batch_size)
+        # IndexError: invalid index of a 0-dim tensor.
+        # Use `tensor.item()` in Python or `tensor.item<T>()` in C++ to convert a 0-dim tensor to a number
+        train_loss_meter.update(train_loss.item(), batch_size)
         train_loss.backward()
         optimizer.step()
 
