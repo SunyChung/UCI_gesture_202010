@@ -23,7 +23,7 @@ WINDOW_SIZE = 8
 SPLIT_SIZE = 0.3  # 30%
 
 
-def split_data(data_name_list, given_labels, data_type, window_size, split_size, test_label_path):
+def split_data_with_label(data_name_list, given_labels, data_type, window_size, split_size, test_label_path):
     test_label_file = open(test_label_path, 'w')
     test_label_file.write('index, label\n')
 
@@ -53,32 +53,39 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
         window_data_array = np.array(window_data_array)
 
         # data split
-        # should NOT shuffle the data!
-        # np.random.seed(123)
-        # np.random.shuffle(window_data_array)
         num_train_data = int(len(window_data_array) * (1.0 - split_size))
         # print('num of train data =', num_train_data)
 
+        # use data without timestamp & label for the data input!
         if data_type == 'raw':
-            train_raw_data = window_data_array[:num_train_data, :, :-2]
-            print(np.shape(train_raw_data))  #: (x, 8, 18)
+            train_raw_data = np.delete(window_data_array[:num_train_data, :, :], -2, axis=2)
+            print(np.shape(train_raw_data))  #: (x, 8, 19)
             train_raw_label = window_data_array[:num_train_data, :, -1]
-            print(np.shape(train_raw_label))  #: (x, 8, 1)
+            print(np.shape(train_raw_label))  #: (x, 8)
+            #train_raw_label = train_raw_label.reshape((-1, WINDOW_SIZE, 1))
+            #print(np.shape(train_raw_label))  #: (x, 8, 1)
 
-            test_raw_data = window_data_array[num_train_data:, :, :-2]
-            print(np.shape(test_raw_data))  # : (x, 8, 18)
+            test_raw_data = np.delete(window_data_array[num_train_data:, :, :], -2, axis=2)
+            print(np.shape(test_raw_data))  # : (x, 8, 19)
             test_raw_label = window_data_array[num_train_data:, :, -1]
-            print(np.shape(test_raw_label))  # : (x, 8, 1)
-        else:
-            train_va3_data = window_data_array[:num_train_data, :, :32]
-            print(np.shape(train_va3_data))  #: (x, 8, 32)
-            train_va3_label = window_data_array[:num_train_data, :, -1]
-            print(np.shape(train_va3_label))
+            print(np.shape(test_raw_label))  # : (x, 8)
+            #test_raw_label = test_raw_label.reshape((-1, WINDOW_SIZE, 1))
+            #print(np.shape(test_raw_label))  # : (x, 8, 1)
 
-            test_va3_data = window_data_array[num_train_data:, :, :32]
-            print(np.shape(test_va3_data))
+        else:
+            train_va3_data = window_data_array[:num_train_data, :, :]
+            print(np.shape(train_va3_data))  # : (x, 8, 33)
+            train_va3_label = window_data_array[:num_train_data, :, -1]
+            print(np.shape(train_va3_label))  # : (x, 8)
+            #train_va3_label = train_va3_label.reshape((-1, WINDOW_SIZE, 1))
+            #print(np.shape(train_va3_label))  # : (x, 8, 1)
+
+            test_va3_data = window_data_array[num_train_data:, :, :]
+            print(np.shape(test_va3_data))  # : (x, 8, 33)
             test_va3_label = window_data_array[num_train_data:, :, -1]
-            print(np.shape(test_va3_label))
+            print(np.shape(test_va3_label))  # : (x, 8)
+            #test_va3_label = test_va3_label.reshape((-1, WINDOW_SIZE, 1))
+            #print(np.shape(test_va3_label))  # : (x, 8, 1)
 
         if data_type == 'raw':
             write_data(train_raw_data, train_raw_label, data_name, data_type, 'train')
@@ -109,9 +116,9 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size,
 
 
 def write_data(data, label, data_name, data_type, index):
-    train_test_path = 'dataset/train_test/'
+    train_test_path = 'dataset/train_test_with_label/'
     if not os.path.exists(train_test_path):
-        os.makedirs(train_test_path)       
+        os.makedirs(train_test_path)
     # write data
     data_path = os.path.join(train_test_path, '%s_%s_%s.csv' % (data_name, data_type, index))
     with open(data_path, 'w') as f:
@@ -122,14 +129,15 @@ def write_data(data, label, data_name, data_type, index):
     # write label
     label_path = os.path.join(train_test_path, '%s_%s_%s_label.txt' % (data_name, data_type, index))
     with open(label_path, 'w') as f:
-        # to make prediction for the last WINDOW_SIZE!
+        # below gives the same label with the data!
         for line in label:
-            f.write(line[-1])
-            f.write('\n')
+            for value in line:
+                f.write(str(value))
+                f.write('\n')
 
 
 raw_test_label_path = os.path.join('dataset', 'raw_test_list.csv')
 pro_test_label_path = os.path.join('dataset', 'va3_test_list.csv')
 
-split_data(DATA_NAME_LIST, RAW_LABELS, 'raw', WINDOW_SIZE, SPLIT_SIZE, raw_test_label_path)
-split_data(DATA_NAME_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE, pro_test_label_path)
+split_data_with_label(DATA_NAME_LIST, RAW_LABELS, 'raw', WINDOW_SIZE, SPLIT_SIZE, raw_test_label_path)
+# split_data_with_label(DATA_NAME_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE, pro_test_label_path)

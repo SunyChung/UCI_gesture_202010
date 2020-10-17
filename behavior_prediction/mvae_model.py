@@ -5,10 +5,10 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 
-from behavior_prediction.data_loader import load_data
+from behavior_prediction.data_loader import load_data_with_label
 
-raw_train_x, raw_train_y = load_data('raw', 'train', return_type='1D')
-raw_test_x, raw_test_y = load_data('raw', 'test', return_type='1D')
+raw_train_x, raw_train_y = load_data_with_label('raw', 'train')
+raw_test_x, raw_test_y = load_data_with_label('raw', 'test')
 
 
 class MVAE(nn.Module):

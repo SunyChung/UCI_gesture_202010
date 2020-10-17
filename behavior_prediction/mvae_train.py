@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from behavior_prediction.mvae_model import MVAE
-from behavior_prediction.data_loader import load_data
+from behavior_prediction.data_loader import load_data_with_label
 
 
 def binary_cross_entropy_with_logit(input, target):
@@ -92,11 +92,11 @@ args = parser.parse_args()
 # args.cuda = args.cuda and torch.cuda.is_available()
 args.cuda = True
 
-train_features, train_labels = load_data('raw', 'train', return_type='1D')
+train_features, train_labels = load_data_with_label('raw', 'train')
 train_features = torch.from_numpy(train_features)
 train_labels = torch.from_numpy(train_labels)
 N_mini_batches = len(train_features)
-test_features, test_labels = load_data('raw', 'test', return_type='1D')
+test_features, test_labels = load_data_with_label('raw', 'test')
 test_features = torch.from_numpy(test_features)
 test_labels = torch.from_numpy(test_labels)
 
