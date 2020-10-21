@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-# params
+# parameters
 PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 RAW_LABELS = {
   'Hold': 0,
@@ -75,6 +75,7 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size)
             write_data(test_data, test_label, data_name, data_type, index='test', write_type='per_window')
             write_data(train_data, train_label, data_name, data_type, index='train', write_type='one_to_one')
             write_data(test_data, test_label, data_name, data_type, index='test', write_type='one_to_one')
+
         else:  # va3_data (not used)
             train_data = window_data_array[:num_train_data, :, :32]
             print(np.shape(train_data))  #: (x, 8, 32)
