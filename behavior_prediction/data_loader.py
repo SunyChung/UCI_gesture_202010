@@ -50,14 +50,14 @@ def one_to_one_data_load(data_type, index, return_type='1D'):
             x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
         else:
             x = np.array(x).reshape((-1, WINDOW_SIZE, 32))
-        y = np.array(y).reshape((-1, WINDOW_SIZE, 1))
+        # y = np.array(y).reshape((-1, WINDOW_SIZE))
 
     else:  # for 2D data return
         if data_type == 'raw':
             x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
         else:
             x = np.array(x).reshape((-1, WINDOW_SIZE, 32, 1))
-        y = np.array(y).reshape((-1, WINDOW_SIZE, 1, 1))
+        y = np.array(y).reshape((-1, WINDOW_SIZE, 1))
 
     print(np.shape(x))
     print(np.shape(y))
@@ -104,10 +104,10 @@ def per_win_data_load(data_type, index, return_type='1D'):
     return x, y
 
 
-# data, label = one_to_one_data_load(data_type='raw', index='train', return_type='1D')
+data, label = one_to_one_data_load(data_type='raw', index='train', return_type='1D')
 # data, label = one_to_one_data_load(data_type='raw', index='train', return_type='2D')
 # data, label = per_win_data_load(data_type='raw', index='train', return_type='1D')
-data, label = per_win_data_load(data_type='raw', index='train', return_type='1D')
+# data, label = per_win_data_load(data_type='raw', index='train', return_type='1D')
 
 print(data[0])
 print(label[0])
