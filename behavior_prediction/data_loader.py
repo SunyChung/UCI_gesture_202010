@@ -47,17 +47,15 @@ def one_to_one_data_load(data_type, index, return_type='1D'):
     # x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
     if return_type == '1D':
         if data_type == 'raw':
-            x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
+            x = np.array(x).reshape((-1, 18))
         else:
-            x = np.array(x).reshape((-1, WINDOW_SIZE, 32))
-        # y = np.array(y).reshape((-1, WINDOW_SIZE))
-
+            x = np.array(x).reshape((-1, 32))
     else:  # for 2D data return
         if data_type == 'raw':
-            x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+            x = np.array(x).reshape((-1, 18, 1))
         else:
-            x = np.array(x).reshape((-1, WINDOW_SIZE, 32, 1))
-        y = np.array(y).reshape((-1, WINDOW_SIZE, 1))
+            x = np.array(x).reshape((-1, 32, 1))
+    y = np.array(y).reshape((-1, 1))
 
     print(np.shape(x))
     print(np.shape(y))
