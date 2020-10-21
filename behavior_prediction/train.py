@@ -10,14 +10,28 @@ from behavior_prediction.data_loader import *
 
 WINDOW_SIZE = 8
 
-
-def build_model(batch_size, n_latent):
+# for data-label one-to-one data, Conv1D doesn't work
+# : NN output shape != target label issue
+def build_model(batch_size):
     model = Sequential()
-    input_shape = (WINDOW_SIZE, 18)
-    model.add(Conv1D(filters=32, kernel_size=5, input_shape=input_shape))
+    input_shape = (1, 18)
+    model.add(Conv1D(filters=32, kernel_size=1, input_shape=input_shape))
     model.add(Flatten())
     model.add(Dense(18, activation='relu'))
-    model.add(Dense(n_latent, activation='softmax'))
+    model.add(Dense(5, activation='softmax'))
+    model.summary()
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+# evaluation: accuracy(%)=   35.199999999999996
+def build_model_dense():
+    model = Sequential()
+    model.add(Dense(512, input_shape=(1, 18), activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    model.add(Dense(5, activation='softmax'))
     model.summary()
     model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
@@ -25,7 +39,6 @@ def build_model(batch_size, n_latent):
 
 def run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint):
     train_x, train_y = one_to_one_data_load(data_type='raw', index='train', return_type='1D')
-    train_y = np.array(train_y).reshape((-1, batch_size, WINDOW_SIZE))
     test_x, test_y = one_to_one_data_load(data_type='raw', index='test', return_type='1D')
 
     for epoch in range(num_epochs):
@@ -53,12 +66,13 @@ def main():
     checkpoint = ModelCheckpoint(filepath=file_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
     batch_size = 16
     num_epochs = 200
-    n_latent = WINDOW_SIZE
 
-    model_name = file_path + 'raw_1D_linear'
+    # model_name = file_path + 'raw_1D_linear'
+    model_name = file_path + 'raw_dense'
     data_name = 'raw'
 
-    model = build_model(batch_size, n_latent)
+    # model = build_model(batch_size)
+    model = build_model_dense()
     run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint)
     load_best(data_name, model, batch_size, model_name)
 
