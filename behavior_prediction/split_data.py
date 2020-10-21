@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 # params
-DATA_NAME_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
+PREFIX_LIST = ['a1', 'a2', 'a3', 'b1', 'b3', 'c1', 'c3']
 RAW_LABELS = {
   'Hold': 0,
   'Rest': 1,
@@ -17,7 +17,6 @@ PRO_LABELS = {
     'R': 3,
     'S': 4
 }
-
 WINDOW_SIZE = 8
 SPLIT_SIZE = 0.3  # 30%
 
@@ -134,5 +133,5 @@ def write_data(data, label, data_name, data_type, index, write_type):
                     f.write('\n')
 
 
-split_data(DATA_NAME_LIST, RAW_LABELS, 'raw', WINDOW_SIZE, SPLIT_SIZE)
-split_data(DATA_NAME_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE)
+split_data(PREFIX_LIST, RAW_LABELS, 'raw', WINDOW_SIZE, SPLIT_SIZE)
+split_data(PREFIX_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE)
