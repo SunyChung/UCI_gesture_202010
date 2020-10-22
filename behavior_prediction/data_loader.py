@@ -41,10 +41,7 @@ def one_to_one_data_load(data_type, index, return_type='1D'):
 
         for value in label:
             y.append(data_dict[value.rstrip()])
-    # for Conv1D input :
-    # x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
-    # for Conv2D input :
-    # x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+
     if return_type == '1D':
         if data_type == 'raw':
             x = np.array(x).reshape((-1, 18))
@@ -90,22 +87,32 @@ def per_win_data_load(data_type, index, return_type='1D'):
             x = np.array(x).reshape((-1, WINDOW_SIZE, 18))
         else:
             x = np.array(x).reshape((-1, WINDOW_SIZE, 32))
-    else:
+        y = np.array(y).reshape((-1, 1))
+
+    elif return_type == '2D':
         if data_type == 'raw':
             x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
         else:
             x = np.array(x).reshape((-1, WINDOW_SIZE, 32, 1))
-    y = np.array(y).reshape((-1, 1))
+        y = np.array(y).reshape((-1, 1, 1))
 
+    else:  # for 3D data shaping
+        if data_type == 'raw':
+            x = np.array(x).reshape((-1, 1, WINDOW_SIZE, 18, 1))
+        else:
+            x = np.array(x).reshape((-1, 1, WINDOW_SIZE, 32, 1))
+        y = np.array(y).reshape((-1, 1, 1, 1))
+
+    print('per window data shapes')
     print(np.shape(x))
     print(np.shape(y))
     return x, y
 
 
-data, label = one_to_one_data_load(data_type='raw', index='train', return_type='1D')
+# data, label = one_to_one_data_load(data_type='raw', index='train', return_type='1D')
 # data, label = one_to_one_data_load(data_type='raw', index='train', return_type='2D')
 # data, label = per_win_data_load(data_type='raw', index='train', return_type='1D')
 # data, label = per_win_data_load(data_type='raw', index='train', return_type='1D')
 
-print(data[0])
-print(label[0])
+# print(data[0])
+# print(label[0])
