@@ -3,8 +3,8 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D
 from tensorflow.keras.layers import Conv2D
 from tensorflow.keras.layers import Conv3D
-from tensorflow.keras.layers import MaxPooling1D
 from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dropout
 from tensorflow.keras.layers import Flatten
 from tensorflow.keras.callbacks import ModelCheckpoint
 
@@ -48,10 +48,12 @@ def build_model_2D(input_shape):
     return model
 
 
+# evaluation: accuracy(%)=   70.89999999999999
 def build_model_3D(input_shape):
     model = Sequential()
     model.add(Conv3D(filters=2, kernel_size=1, input_shape=input_shape))
     model.add(Flatten())
+    # model.add(Dropout(0.5))
     model.add(Dense(100, activation='relu'))
     model.add(Dense(5, activation='softmax'))
     model.summary()
@@ -73,7 +75,7 @@ def run_model(data_name, model, num_epochs, batch_size, model_name, checkpoint):
     test_x, test_y = per_win_data_load(data_type='raw', index='train', return_type='3D')
 
     for epoch in range(num_epochs):
-        history = model.fit(x=train_x, y=train_y, validation_split=0.1, epochs=1,
+        history = model.fit(x=train_x, y=train_y, validation_split=0, epochs=1,
                             batch_size=batch_size, verbose=1, shuffle=True, callbacks=[checkpoint])
         _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
         print('%d : accuracy = %f' %(epoch, round(accuracy, 3) * 100))
