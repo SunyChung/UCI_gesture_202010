@@ -1,5 +1,6 @@
 import os
 import matplotlib.pyplot as plt
+import tensorflow
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D
 from tensorflow.keras.layers import Conv2D
@@ -79,7 +80,8 @@ def build_model_3D(input_shape):
     #                bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5)))
     model.add(Dense(5, activation='softmax'))
     model.summary()
-    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    opt = tensorflow.keras.optimizers.Adam(lr=1e-4, epsilon=1e-4)
+    model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
     return model
 
 
