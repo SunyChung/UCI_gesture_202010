@@ -79,8 +79,8 @@ parser.add_argument('--n_latents', type=int, default=64,
                     help='size of the latent embedding [default : 64]')
 parser.add_argument('--batch_size', type=int, default=16,
                     help='input batch size for training [default : 16')
-parser.add_argument('--epochs', type=int, default=200,
-                    help='number of epochs to train [default : 200]')
+parser.add_argument('--epochs', type=int, default=2,
+                    help='number of epochs to train [default : 2]')
 parser.add_argument('--annealing-epochs', type=int, default=100, metavar='N',
                     help='number of epochs to anneal KL for [default : 100]')
 parser.add_argument('--lr', type=float, default=1e-3, metavar='LR',
@@ -168,7 +168,7 @@ def train(epoch):
                                annealing_factor=annealing_factor)
         train_loss = joint_loss + feature_loss + label_loss
 
-        print(train_loss)  # tensor(56.3344, grad_fn=<AddBackward0>)
+        print(train_loss)  # tensor(30.4222, grad_fn=<AddBackward0>)
         # train_loss_meter.update(train_loss.data[0], batch_size)
         # IndexError: invalid index of a 0-dim tensor.
         # Use `tensor.item()` in Python or `tensor.item<T>()` in C++ to convert a 0-dim tensor to a number
@@ -181,7 +181,13 @@ def train(epoch):
                   .format(epoch, batch_idx * len(feature), len(train_features),
                           100. * batch_idx / len(train_features), train_loss_meter.avg, annealing_factor))
     print('----- epoch : {}\tloss : {:.4f} -----'.format(epoch, train_loss_meter.avg))
-
+    # tensor(30.4222, grad_fn=<AddBackward0>)
+    # train epoch : 2 [0/6888 (0%)]	Loss : 30.422192	Annealing-Factor : 0.010
+    # train epoch : 2 [80/6888 (0%)]	Loss : -1716.550595	Annealing-Factor : 0.010
+    # train epoch : 2 [160/6888 (0%)]	Loss : -96027.223117	Annealing-Factor : 0.010
+    # train epoch : 2 [240/6888 (0%)]	Loss : -1762006.280176	Annealing-Factor : 0.010
+    # train epoch : 2 [320/6888 (1%)]	Loss : nan	Annealing-Factor : 0.010
+    # train epoch : 2 [400/6888 (1%)]	Loss : nan	Annealing-Factor : 0.010
 
 def mvae_test(epoch):
     model.eval()

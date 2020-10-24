@@ -41,7 +41,7 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size)
         data_array = np.array(data)
         labels = data_array[:, -1]
         # print(labels)
-        print('label length = ', len(labels))
+        # print('label length = ', len(labels))
         # remove no-label data
         for i in range(len(labels)):
             if labels[i] not in given_labels:
@@ -73,8 +73,8 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size)
 
             write_data(train_data, train_label, data_name, data_type, index='train', write_type='per_window')
             write_data(test_data, test_label, data_name, data_type, index='test', write_type='per_window')
-            write_data(train_data, train_label, data_name, data_type, index='train', write_type='one_to_one')
-            write_data(test_data, test_label, data_name, data_type, index='test', write_type='one_to_one')
+            # write_data(train_data, train_label, data_name, data_type, index='train', write_type='one_to_one')
+            # write_data(test_data, test_label, data_name, data_type, index='test', write_type='one_to_one')
 
         else:  # va3_data (not used)
             train_data = window_data_array[:num_train_data, :, :32]
@@ -96,10 +96,10 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size)
 
         num_test_data = 0
         for line in test_label:
+            num_test_data += 1
+            num_total_test_data += 1
             for value in line:
                 test_label_file.write('%d, %d\n' % (num_total_test_data + 1, given_labels[value]))
-                num_test_data += 1
-                num_total_test_data += 1
         print('%s %s: %d test data' % (data_name, data_type, num_test_data))
     test_label_file.close()
     print('total number of test data = %d' % num_total_test_data)
@@ -135,4 +135,4 @@ def write_data(data, label, data_name, data_type, index, write_type):
 
 
 split_data(PREFIX_LIST, RAW_LABELS, 'raw', WINDOW_SIZE, SPLIT_SIZE)
-split_data(PREFIX_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE)
+# split_data(PREFIX_LIST, PRO_LABELS, 'va3', WINDOW_SIZE, SPLIT_SIZE)

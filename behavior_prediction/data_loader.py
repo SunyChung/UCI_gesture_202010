@@ -19,7 +19,7 @@ PRO_LABELS = {
 WINDOW_SIZE = 8
 
 
-def one_to_one_data_load(data_type, index, return_type='1D'):
+def one_to_one_data_load(data_type, index, return_type):
     data_dir = './dataset/one_to_one_train_test/'
     if data_type == 'raw':
         data_dict = RAW_LABELS
@@ -59,7 +59,7 @@ def one_to_one_data_load(data_type, index, return_type='1D'):
     return x, y
 
 
-def per_win_data_load(data_type, index, return_type='1D'):
+def per_win_data_load(data_type, index, return_type):
     data_dir = './dataset/per_win_train_test/'
     if data_type == 'raw':
         data_dict = RAW_LABELS

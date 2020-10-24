@@ -26,12 +26,10 @@ def build_model():
     model.add(Dense(100, activation='relu'))
     model.add(Dense(5, activation='softmax'))
     model.summary()
-    model.compile(loss='sparse_categorical_crossentropy',
-              optimizer='adam', #Adam(lr=0.0001, epsilon=1e-4),
-              metrics=['accuracy'])
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
-# evaluation: accuracy(%)=   35.199999999999996
+# evaluation: accuracy(%)=   35.19
 def build_model_dense():
     model = Sequential()
     model.add(Dense(512, input_shape=(1, 18), activation='relu'))
@@ -45,9 +43,9 @@ def build_model_dense():
     return model
 
 
-def build_model_1D(input_shape):
+def build_model_1D():
     model = Sequential()
-    model.add(Conv1D(filters=8, kernel_size=1, strides=1, input_shape=input_shape))
+    model.add(Conv1D(filters=1, kernel_size=1, input_shape=(WINDOW_SIZE, 18)))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
     model.add(Dense(5, activation='softmax'))
@@ -56,9 +54,9 @@ def build_model_1D(input_shape):
     return model
 
 
-def build_model_2D(input_shape):
+def build_model_2D():
     model = Sequential()
-    model.add(Conv2D(filters=16, kernel_size=1, input_shape=input_shape))
+    model.add(Conv2D(filters=16, kernel_size=1, input_shape=(WINDOW_SIZE, 18, 1)))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
     model.add(Dense(5, activation='softmax'))
@@ -67,27 +65,21 @@ def build_model_2D(input_shape):
     return model
 
 
-# evaluation: accuracy(%)=   70.89999999999999
-def build_model_3D(input_shape):
+# evaluation: accuracy(%)=   70.89
+def build_model_3D():
     model = Sequential()
-    model.add(Conv3D(filters=2, kernel_size=1, input_shape=input_shape))
-    #                 , kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4),
-    #                 bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5)))
+    model.add(Conv3D(filters=2, kernel_size=1, input_shape=(1, WINDOW_SIZE, 18, 1)))
     model.add(Flatten())
-    # model.add(Dropout(0.5))
     model.add(Dense(100, activation='relu'))
-    #                , kernel_regularizer=regularizers.l1_l2(l1=1e-5, l2=1e-4),
-    #                bias_regularizer=regularizers.l2(1e-4), activity_regularizer=regularizers.l2(1e-5)))
     model.add(Dense(5, activation='softmax'))
     model.summary()
-    opt = tensorflow.keras.optimizers.Adam(lr=1e-4, epsilon=1e-4)
-    model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
 
 
-def build_Conv3D_LSTM(input_shape):
+def build_Conv3D_LSTM():
     model = Sequential()
-    model.add(TimeDistributed(Conv3D(filters=2, kernel_size=1, input_shape=input_shape)))
+    model.add(TimeDistributed(Conv3D(filters=2, kernel_size=1, input_shape=(1, WINDOW_SIZE, 18, 1))))
     model.add(TimeDistributed(Flatten()))
     model.add(LSTM(288))
     model.add(Dense(100, activation='relu'))
@@ -98,21 +90,20 @@ def build_Conv3D_LSTM(input_shape):
 
 
 def run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, test_x, test_y):
-    model_history = []
     for epoch in range(num_epochs):
         history = model.fit(x=train_x, y=train_y, validation_split=0.1, epochs=1,
                             batch_size=batch_size, verbose=1, shuffle=True, callbacks=[checkpoint])
         _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
         #  print(history.history.keys())
-        model_history.append(history.history['accuracy'])
         print('%d : accuracy = %f' %(epoch, round(accuracy, 3) * 100))
     model.save_weights('%s_weights.hdf5' %model_name)
     model.save('%s.h5' %model_name)
-    return model_history, history
+    return history
 
 
 def load_best(model, batch_size, model_name, test_x, test_y):
-    model.load_weights('%s_weights.hdf5' % model_name)
+    model.load_weights('%s_weights.hdf5' % model_name)  # 74.3
+    # model.load_weights('./model/checkpoint.hdf5')  # 71.89
     _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
     print('evaluation: accuracy(%)=  ', round(accuracy, 3)*100)
 
@@ -121,8 +112,8 @@ def main():
     file_path = './model/'
     if not os.path.exists(file_path):
         os.makedirs(file_path)
-
-    checkpoint = ModelCheckpoint(filepath=file_path, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+    checkpoint = ModelCheckpoint(filepath=file_path + 'checkpoint.hdf5', monitor='val_accuracy',
+                                 verbose=1, save_best_only=True, mode='max')
     batch_size = 16
     num_epochs = 200
 
@@ -133,35 +124,29 @@ def main():
     model_name = file_path + 'raw_3D_test'  # 72.89 %
     # model_name = file_path + 'raw_3D_LSTM'
 
-    # input_shape_1D = (WINDOW_SIZE, 18)  # 1D input shape
-    # input_shape_2D = (WINDOW_SIZE, 18, 1)  # 2D input shape
-    input_shape_3D = (1, WINDOW_SIZE, 18, 1)  # 3D input shape
-
     # model = build_model()
     # model = build_model_dense()
-    # model = build_model_1D(input_shape_1D)
-    # model = build_model_2D(input_shape_2D)
-    model = build_model_3D(input_shape_3D)
-    # model = build_Conv3D_LSTM(input_shape_3D)
+    # model = build_model_1D()
+    # model = build_model_2D()
+    model = build_model_3D()
+    # model = build_Conv3D_LSTM()
 
-    # train_x, train_y = per_win_data_load(data_type='raw', index='train', return_type='1D')
-    # test_x, test_y = per_win_data_load(data_type='raw', index='test', return_type='1D')
+    return_type = '3D'
+    train_x, train_y = per_win_data_load(data_type='raw', index='train', return_type=return_type)
+    test_x, test_y = per_win_data_load(data_type='raw', index='test', return_type=return_type)
 
-    # train_x, train_y = per_win_data_load(data_type='raw', index='train', return_type='2D')
-    # test_x, test_y = per_win_data_load(data_type='raw', index='train', return_type='2D')
-
-    train_x, train_y = per_win_data_load(data_type='raw', index='train', return_type='3D')
-    test_x, test_y = per_win_data_load(data_type='raw', index='train', return_type='3D')
-
-    model_history, history = run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, test_x, test_y)
+    history = run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, test_x, test_y)
     load_best(model, batch_size, model_name, test_x, test_y)
 
-    print(history.history)
-    plt.plot(range(1, len(model_history) + 1), model_history)
-    plt.title('training accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.show()
+
+    def plot_history(history):
+        print(history.history)
+        plt.plot(range(1, len(history.history['val_accuracy']) + 1), history.history['val_accuracy'])
+        plt.title('training accuracy')
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.show()
+
 
 if __name__ == '__main__':
     main()
