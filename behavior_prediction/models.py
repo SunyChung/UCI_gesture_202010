@@ -1,8 +1,10 @@
 import keras
 from keras import layers
 from keras import Model
+from keras import Input
 from keras.models import Sequential
 from keras.layers import Conv2D
+from keras.layers import Conv1D
 from keras.layers import MaxPooling2D
 from keras.layers import Flatten
 from keras.layers import Dense
@@ -42,13 +44,13 @@ def build_LSTM():
 
 def build_concate():
     # Isn't the Conv2D stride=(1,3) can handle the below hassle?!?!
-    left_hand_input = keras.Input(shape=(None,), name='left_hand')
-    right_hand_input = keras.Input(shape=(None,), name='right_hand')
-    head_input = keras.Input(shape=(None,), name='head')
-    spine_input = keras.Input(shape=(None,), name='spine')
-    left_wrist_input = keras.Input(shape=(None,), name='left_wrist')
-    right_wrist_input = keras.Input(shape=(None,), name='right_wrist')
-    person_input = keras.Input(shape=(None,), name='who')
+    left_hand_input = Input(shape=(None,), name='left_hand')
+    right_hand_input = Input(shape=(None,), name='right_hand')
+    head_input = Input(shape=(None,), name='head')
+    spine_input = Input(shape=(None,), name='spine')
+    left_wrist_input = Input(shape=(None,), name='left_wrist')
+    right_wrist_input = Input(shape=(None,), name='right_wrist')
+    person_input = Input(shape=(None,), name='who')
 
     left_hand_features = Conv2D(16, 3, activation='relu')(left_hand_input)
     right_hand_features = Conv2D(16, 3, activation='relu')(right_hand_input)
@@ -63,16 +65,35 @@ def build_concate():
                             left_wrist_features, right_wrist_features,
                             person_features])
 
-    gesture_pred = layers.Dense(5, name='label')(x)
+    gesture_pred = layers.Dense(5, activation='softmax', name='label')(x)
 
-    model = Model(inputs = [left_hand_input, right_hand_input, head_input, spine_input,
-                                  left_wrist_input, right_wrist_input, person_input],
-                        output = gesture_pred,
-                        )
+    model = Model(inputs=[left_hand_input, right_hand_input, head_input, spine_input,
+                          left_wrist_input, right_wrist_input, person_input],
+                output=gesture_pred,
+                )
     plot_model(model, 'multi_concate.png', show_shapes=True)
 
     model.compile(
         optimizer=keras.optimizers.RMSprop(1e-3),
         loss=[keras.losses.SparseCategoricalCrossentropy(from_logits=True)]
         )
+    return model
+
+
+def build_p_feature():
+    coordinate_input = Input(shape=(None,), name='coordinate')
+    person_label_input = Input(shape=(None,), name='p_label')
+
+    coordinate_features = Conv2D(16, 3, activation='relu')(coordinate_input)
+    person_label_features = Conv1D(16, 3, activation='relu')(person_label_input)
+
+    x = layers.concatenate([coordinate_features, person_label_features])
+    x = layers.Dense(100, activation='relu', name='dense')(x)
+    next_gesture_pred = layers.Dense(5, activation='softmax', name='label')
+
+    model = Model(inputs=[coordinate_input, person_label_input],
+                  output=next_gesture_pred)
+    plot_model(model, 'personal_lable.png', show_shapes=True)
+
+    model.compile(optimizer='adam', loss='sparse_categorical_cross_entropy')
     return model
