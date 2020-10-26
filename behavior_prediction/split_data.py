@@ -81,7 +81,6 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size)
             print(np.shape(train_data))  #: (x, 8, 32)
             train_label = window_data_array[:num_train_data, :, -1]
             print(np.shape(train_label))
-
             test_data = window_data_array[num_train_data:, :, :32]
             print(np.shape(test_data))
             test_label = window_data_array[num_train_data:, :, -1]
@@ -90,9 +89,9 @@ def split_data(data_name_list, given_labels, data_type, window_size, split_size)
             print('data-label : per window write\n')
             write_data(train_data, train_label, data_name, data_type, index='train', write_type='per_window')
             write_data(test_data, test_label, data_name, data_type, index='test', write_type='per_window')
-            print('data-label : one-to-one write')
-            write_data(train_data, train_label, data_name, data_type, index='train', write_type='one_to_one')
-            write_data(test_data, test_label, data_name, data_type, index='test', write_type='one_to_one')
+            # print('data-label : one-to-one write')
+            # write_data(train_data, train_label, data_name, data_type, index='train', write_type='one_to_one')
+            # write_data(test_data, test_label, data_name, data_type, index='test', write_type='one_to_one')
 
         num_test_data = 0
         for line in test_label:
