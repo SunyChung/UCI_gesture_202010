@@ -14,15 +14,16 @@ RAW_LABELS = {
 WINDOW_SIZE = 8
 SPLIT_SIZE = 0.3  # 30%
 
-def make_data(data_name_list, given_labels, data_type, window_size, split_size):
+
+def make_data(prefix_list, given_labels, data_type, window_size, split_size):
     test_label_path = os.path.join('dataset', 'raw_test_list.csv')
     test_label_file = open(test_label_path, 'w')
     test_label_file.write('index, label\n')
 
     num_total_test_data = 0
-    for data_name in data_name_list:
+    for prefix in PREFIX_LIST:
         data = []
-        raw_data_path = os.path.join('dataset/original/', '%s_%s.csv' % (data_name, data_type))
+        raw_data_path = os.path.join('dataset/original/', '%s_%s.csv' % (prefix, data_type))
         with open(raw_data_path, 'r') as f:
             f.readline()
             for row in f:
@@ -47,8 +48,8 @@ def make_data(data_name_list, given_labels, data_type, window_size, split_size):
         test_data = window_data_array[num_train_data:, :, :-2]
         test_label = window_data_array[num_train_data:, :, -1]
 
-        write_data(train_data, train_label, data_name, data_type, index='train')
-        write_data(test_data, test_label, data_name, data_type, index='test')
+        write_data(train_data, train_label, prefix, data_type, index='train')
+        write_data(test_data, test_label, prefix, data_type, index='test')
 
 
 def write_data(data, label, data_name, data_type, index):

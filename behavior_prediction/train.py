@@ -1,56 +1,11 @@
 import os
 import matplotlib.pyplot as plt
-import keras
-from keras.models import Sequential
-from keras.layers import Conv1D
-from keras.layers import Conv2D
-from keras.layers import Conv3D
-from keras.layers import Dense
-from keras.layers import MaxPooling1D
-from keras.layers import MaxPooling2D
-from keras.layers import GlobalMaxPooling2D
-from keras.layers import TimeDistributed
-from keras.layers import LSTM
-from keras.layers import Flatten
 from keras.callbacks import ModelCheckpoint
-from keras.utils import plot_model
 
 from behavior_prediction.data_loader import *
+from behavior_prediction.models import build_2018, build_LSTM, build_concate
 
 WINDOW_SIZE = 8
-
-def build_2018():  # why is it still 50 %??
-    model = Sequential()
-    model.add(Conv2D(16, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=(8, 18, 1)))
-    model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
-    model.add(Flatten())
-    model.add(Dense(100, activation='relu'))
-    model.add(Dense(5, activation='softmax'))
-    model.compile(
-        optimizer=keras.optimizers.RMSprop(learning_rate=1e-3),
-        loss=keras.losses.SparseCategoricalCrossentropy(),
-        metrics=[keras.metrics.SparseCategoricalAccuracy()],
-    )
-    model.summary()
-    return model
-
-
-def build_LSTM():
-    model = Sequential()
-    model.add(LSTM(16, input_shape=(8, 18)))
-    model.add(Dense(100, activation='relu'))
-    model.add(Dense(5, activation='softmax'))
-    model.summary()
-    model.compile(
-        optimizer=keras.optimizers.RMSprop(learning_rate=1e-3),
-        loss=keras.losses.SparseCategoricalCrossentropy(),
-        metrics=[keras.metrics.SparseCategoricalAccuracy()],
-    )
-    return model
-
-
-#def build_combined():
-
 
 
 def run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, test_x, test_y):
@@ -63,7 +18,6 @@ def run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, tr
     model.save_weights('%s_weights.hdf5' %model_name)
     model.save('%s.h5' %model_name)
     return history
-
 
 
 def load_best(model, batch_size, model_name, test_x, test_y):

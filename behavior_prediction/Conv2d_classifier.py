@@ -19,7 +19,7 @@ def build_model(data_name):
     else:
         input_shape = (WINDOW_SIZE, 32, 1)
     model = Sequential()
-    model.add(Conv2D(32, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=input_shape))
+    model.add(Conv2D(16, kernel_size=(5, 3), strides=(1, 3), activation='relu', input_shape=input_shape))
     model.add(MaxPooling2D(pool_size=(2, 2), strides=(1, 1)))
     model.add(Flatten())
     model.add(Dense(100, activation='relu'))
