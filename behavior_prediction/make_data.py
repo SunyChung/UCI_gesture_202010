@@ -44,7 +44,6 @@ def make_data(data_name_list, given_labels, data_type, window_size, split_size):
 
         train_data = window_data_array[:num_train_data, :, :-2]
         train_label = window_data_array[:num_train_data, :, -1]
-
         test_data = window_data_array[num_train_data:, :, :-2]
         test_label = window_data_array[num_train_data:, :, -1]
 
