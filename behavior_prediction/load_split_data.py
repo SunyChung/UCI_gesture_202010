@@ -29,17 +29,19 @@ def data_load(data_type, index):
         for value in label:
             y.append(int(value.rstrip()))
 
-    print(np.shape(x))
-    print(np.shape(y))
+    # print(np.shape(x))  # (55104, 6, 3)
+    # print(np.shape(y))  # (6888,)
+    print('first line')
     print(x[0])
-    print(y[0])
-    print(np.shape(np.array(x).reshape((-1, 8, 6, 3))))
-    print(x[0])
-    x = np.array(x).reshape((-1, 8, 6, 3))
+    print(x[1])
+    # print(y[0])
+    x = np.array(x).reshape((-1, 8, 6, 3))  # (6888, 8, 6, 3)
     y = np.array(y).reshape((-1, 1))
     return x, y
 
 
 data, label = data_load(data_type='raw', index='train')
-print(data[0])
-print(np.shape(data[0]))
+# print(data[0])
+# print(np.shape(data[0]))  # (8, 6, 3)
+print((data[0][0]))  # first line to (6, 3) matrix format
+print((data[0][1]))  # second line to (6, 3) matrix format
