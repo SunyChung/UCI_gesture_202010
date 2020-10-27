@@ -1,4 +1,5 @@
 import os
+import keras
 import numpy as np
 import matplotlib.pyplot as plt
 from keras.callbacks import ModelCheckpoint
@@ -65,14 +66,14 @@ def main():
     # return_type = 'LSTM'
     # train_x, train_y = data_load(data_type='raw', index='train', return_type=return_type)
     train_x, train_y, train_f  = featured_data_load(data_type='raw', index='train')
-    print(np.shape(train_x[0]))  # (8, 18)
-    print(np.shape(train_y[0]))  # (1,)
-    print(np.shape(train_f[0]))  # (8, 1, 1)
+    train_y = keras.utils.to_categorical(train_y, num_classes=5)
+    print(train_y[0])
+    print(np.shape(train_y))  # (6888, 5)
     # test_x, test_y = data_load(data_type='raw', index='test', return_type=return_type)
     test_x, test_y, test_f = featured_data_load(data_type='raw', index='test')
-    print(np.shape(test_x[0]))
-    print(np.shape(test_y[0]))
-
+    test_y = keras.utils.to_categorical(test_y, num_classes=5)
+    print(test_y[0])
+    print(np.shape(test_y))  # (2956, 5)
     # history = run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, test_x, test_y)
     history = run_feature_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, train_f, test_x, test_y)
     load_best(model, batch_size, model_name, test_x, test_y)

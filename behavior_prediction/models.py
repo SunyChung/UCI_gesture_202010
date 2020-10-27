@@ -78,34 +78,27 @@ def build_concate():
 
     model.compile(
         optimizer=keras.optimizers.RMSprop(1e-3),
-        loss=[keras.losses.SparseCategoricalCrossentropy(from_logits=True)]
-        )
+        loss=[keras.losses.SparseCategoricalCrossentropy(from_logits=True)],
+        metrics=['accuracy'])
     return model
 
 
 def build_p_feature():
     coord_input = Input(shape=(8, 18, 1), name='coordinate')
     person_input = Input(shape=(8, 1, 1), name='person')
-    # (None, None, 8-3+1=6, channel=16) ->
     coord_features = Conv2D(32, (3, 18), activation='relu')(coord_input)
-    # print(np.shape(coord_features))  # (?, 6, 1, 32)
-
-    # reshaped_features = Reshape(coord_features, shape=(-1, 6, 16))
-    # if use Reshape in Functional API, got the following error :
-    # AttributeError: 'NoneType' object has no attribute '_inbound_nodes'
-
-    # reshaped_features = Lambda(lambda x: Reshape((-1, 6, 16), input_shape=(None, None, 6, 16)))(coord_features)
-    # Conv2D kernel_size = (row, column)
     person_features = Conv2D(32, (3, 1), activation='relu')(person_input)
-    # print(np.shape(person_features))  # (?, 6, 1, 32)
-
+    # (?, 6, 1, 32)
     x = layers.concatenate([coord_features, person_features])
+    # (?, 6, 1, 64)
+    x = layers.Flatten()(x)  # (?, 384)
     x = layers.Dense(100, activation='relu', name='dense')(x)
-    next_gesture_pred = layers.Dense(5, activation='softmax', name='label')(x)
+    next_gesture_pred = layers.Dense(5, activation='softmax', axis=-1, name='label')(x)
 
     model = Model(inputs=[coord_input, person_input],
                   output=next_gesture_pred)
     plot_model(model, 'personal_lable.png', show_shapes=True)
 
-    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
+    model.compile(optimizer='adam', loss='categorical_crossentropy',
+                  metrics=['accuracy'])
     return model
