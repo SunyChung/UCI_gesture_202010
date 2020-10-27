@@ -69,6 +69,4 @@ def featured_data_load(data_type, index):
 
 
 data, label, feature = featured_data_load('raw', 'train')
-# print(np.shape(data))  # (6888, 8, 18, 1)
-# print(np.shape(label))  # (6888, 1)
-# print(np.shape(feature))  # (6888, 8, 1, 1)
+

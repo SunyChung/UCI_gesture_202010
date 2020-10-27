@@ -23,26 +23,25 @@ def run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, tr
     return history
 
 
-def run_feature_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, train_f, test_x, test_y):
+def run_feature_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, train_f, test_x, test_y, test_f):
     for epoch in range(num_epochs):
-        history = model.fit(
-            {'coordinate': train_x,
-             'label': train_y,
-             'person': train_f
-             },
-            validation_split=0, epochs=1, batch_size=batch_size, verbose=1, shuffle=True, callbacks=[checkpoint]
-        )
-        _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
+        history = model.fit({'coordinate': train_x, 'person': train_f},y=train_y,
+                            validation_split=0, epochs=1, batch_size=batch_size,
+                            verbose=1, shuffle=True, callbacks=[checkpoint]
+                            )
+        _, accuracy = model.evaluate({'coordinate': test_x, 'person': test_f}, y=test_y,
+                                     batch_size=batch_size, verbose=1)
         print('%d : accuracy = %f' %(epoch, round(accuracy, 3) * 100))
     model.save_weights('%s_weights.hdf5' %model_name)
     model.save('%s.h5' %model_name)
     return history
 
 
-def load_best(model, batch_size, model_name, test_x, test_y):
+def load_best(model, batch_size, model_name, test_x, test_y, test_f):
     model.load_weights('%s_weights.hdf5' % model_name)
     # model.load_weights('./model/checkpoint.hdf5')
-    _, accuracy = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=1)
+    _, accuracy = model.evaluate({'coordinate': test_x, 'person': test_f}, y=test_y,
+                                 batch_size=batch_size, verbose=1)
     print('evaluation: accuracy(%)=  ', round(accuracy, 3)*100)
 
 
@@ -58,25 +57,13 @@ def main():
     # model_name = file_path + 'previous'  # 2018 model : 49.3 %
     # model_name = file_path + 'raw_LSTM'  # 46.50
     model_name = file_path + 'p_features'  # 46.50
-
-    # model = build_2018()
     model = build_p_feature()
 
-    # return_type = '2D'
-    # return_type = 'LSTM'
-    # train_x, train_y = data_load(data_type='raw', index='train', return_type=return_type)
     train_x, train_y, train_f  = featured_data_load(data_type='raw', index='train')
-    train_y = keras.utils.to_categorical(train_y, num_classes=5)
-    print(train_y[0])
-    print(np.shape(train_y))  # (6888, 5)
-    # test_x, test_y = data_load(data_type='raw', index='test', return_type=return_type)
     test_x, test_y, test_f = featured_data_load(data_type='raw', index='test')
-    test_y = keras.utils.to_categorical(test_y, num_classes=5)
-    print(test_y[0])
-    print(np.shape(test_y))  # (2956, 5)
-    # history = run_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, test_x, test_y)
-    history = run_feature_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, train_f, test_x, test_y)
-    load_best(model, batch_size, model_name, test_x, test_y)
+
+    history = run_feature_model(model, num_epochs, batch_size, model_name, checkpoint, train_x, train_y, train_f, test_x, test_y, test_f)
+    load_best(model, batch_size, model_name, test_x, test_y, test_f)
 
 
     def plot_history(history):

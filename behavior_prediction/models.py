@@ -93,12 +93,12 @@ def build_p_feature():
     # (?, 6, 1, 64)
     x = layers.Flatten()(x)  # (?, 384)
     x = layers.Dense(100, activation='relu', name='dense')(x)
-    next_gesture_pred = layers.Dense(5, activation='softmax', axis=-1, name='label')(x)
+    next_gesture_pred = layers.Dense(5, activation='softmax', name='label')(x)
 
     model = Model(inputs=[coord_input, person_input],
                   output=next_gesture_pred)
     plot_model(model, 'personal_lable.png', show_shapes=True)
 
-    model.compile(optimizer='adam', loss='categorical_crossentropy',
+    model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy',
                   metrics=['accuracy'])
     return model
