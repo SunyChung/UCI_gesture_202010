@@ -9,7 +9,10 @@ from keras.layers import MaxPooling2D
 from keras.layers import Flatten
 from keras.layers import Dense
 from keras.layers import LSTM
+from keras.layers import Lambda, Reshape
 from keras.utils import plot_model
+import numpy as np
+import tensorflow as tf
 
 
 def build_2018():  # why is it still 50 %??
@@ -81,19 +84,28 @@ def build_concate():
 
 
 def build_p_feature():
-    coordinate_input = Input(shape=(None,), name='coordinate')
-    person_label_input = Input(shape=(None,), name='p_label')
+    coord_input = Input(shape=(8, 18, 1), name='coordinate')
+    person_input = Input(shape=(8, 1, 1), name='person')
+    # (None, None, 8-3+1=6, channel=16) ->
+    coord_features = Conv2D(32, (3, 18), activation='relu')(coord_input)
+    # print(np.shape(coord_features))  # (?, 6, 1, 32)
 
-    coordinate_features = Conv2D(16, 3, activation='relu')(coordinate_input)
-    person_label_features = Conv1D(16, 3, activation='relu')(person_label_input)
+    # reshaped_features = Reshape(coord_features, shape=(-1, 6, 16))
+    # if use Reshape in Functional API, got the following error :
+    # AttributeError: 'NoneType' object has no attribute '_inbound_nodes'
 
-    x = layers.concatenate([coordinate_features, person_label_features])
+    # reshaped_features = Lambda(lambda x: Reshape((-1, 6, 16), input_shape=(None, None, 6, 16)))(coord_features)
+    # Conv2D kernel_size = (row, column)
+    person_features = Conv2D(32, (3, 1), activation='relu')(person_input)
+    # print(np.shape(person_features))  # (?, 6, 1, 32)
+
+    x = layers.concatenate([coord_features, person_features])
     x = layers.Dense(100, activation='relu', name='dense')(x)
-    next_gesture_pred = layers.Dense(5, activation='softmax', name='label')
+    next_gesture_pred = layers.Dense(5, activation='softmax', name='label')(x)
 
-    model = Model(inputs=[coordinate_input, person_label_input],
+    model = Model(inputs=[coord_input, person_input],
                   output=next_gesture_pred)
     plot_model(model, 'personal_lable.png', show_shapes=True)
 
-    model.compile(optimizer='adam', loss='sparse_categorical_cross_entropy')
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
     return model

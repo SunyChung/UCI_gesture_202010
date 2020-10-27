@@ -8,17 +8,16 @@ RAW_LABELS = {
   'Retraction': 3,
   'Stroke': 4
 }
+WINDOW_SIZE = 8
 
 
-def data_load(data_type, index):
+def split_data_load(data_type, index):
     data_dir = 'dataset/multi_train_test/'
-
     x = []
     y = []
     for prefix in PREFIX_LIST:
         data = open(data_dir + str(prefix) + '_' + str(data_type) + '_' + str(index) + '.csv', 'r')
         label = open(data_dir + str(prefix) + '_' + str(data_type) + '_' + str(index) + '_label.txt', 'r')
-
         for line in data:
             line = line.rstrip().split(',')
             temp = []
@@ -31,9 +30,56 @@ def data_load(data_type, index):
 
     print(np.shape(x))
     print(np.shape(y))
-    #x = np.array(x).reshape((8, -1, 3))  # (6888, 8, 6, 3)
+    #x = np.array(x).reshape((8, -1, 3))
     #y = np.array(y).reshape((-1, 1))
     return x, y
 
+# data, label = split_data_load(data_type='raw', index='train')
 
-data, label = data_load(data_type='raw', index='train')
+
+def featured_data_load(data_type, index):
+    data_dir = 'dataset/per_win_train_test/'
+    x = []
+    y = []
+    l = []
+    for prefix in PREFIX_LIST:
+        data = open(data_dir + str(prefix) + '_' + str(data_type) + '_' + str(index) + '.csv', 'r')
+        label = open(data_dir + str(prefix) + '_' + str(data_type) + '_' + str(index) + '_label.txt', 'r')
+        # data array extraction
+        for line in data:
+            line = line.rstrip().split(',')
+            if prefix[0] == 'a':
+                l.append(int(0))  # person a -> 0
+            elif prefix[0] == 'b':
+                l.append(int(1))  # person b -> 1
+            else:  # prefix[0] == 'c'
+                l.append(int(2))  # person c -> 2
+            temp = []
+            for value in line:
+                temp = temp + [float(value)]
+            x.append(temp)
+        # label data extraction
+        for value in label:
+            y.append(int(RAW_LABELS[value.rstrip()]))
+
+    x = np.array(x).reshape((-1, WINDOW_SIZE, 18, 1))
+    y = np.array(y).reshape((-1, 1))
+    l = np.array(l).reshape((-1, WINDOW_SIZE, 1, 1))
+    return x, y, l
+
+
+data, label, feature = featured_data_load('raw', 'train')
+# print(np.shape(data))  # (6888, 8, 18)
+# print(np.shape(label))  # (6888, 1)
+# print(np.shape(feature))  # (6888, 8, 1)
+# print(feature[0])
+'''
+[[0]
+ [0]
+ [0]
+ [0]
+ [0]
+ [0]
+ [0]
+ [0]]
+'''
